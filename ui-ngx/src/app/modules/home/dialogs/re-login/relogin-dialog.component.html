@@ -1,0 +1,111 @@
+<!--
+
+    Copyright © 2016-2024 The Thingsboard Authors
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<form [formGroup]="reloginFormGroup" (ngSubmit)="login()" style="min-width: 480px;">
+  <mat-toolbar color="primary">
+    <h2 translate>{{ 'relogin.verify-your-login' }}</h2>
+    <span fxFlex></span>
+    <button mat-icon-button
+            (click)="cancel()"
+            type="button">
+      <mat-icon class="material-icons">close</mat-icon>
+    </button>
+  </mat-toolbar>
+  <mat-progress-bar color="warn" mode="indeterminate" *ngIf="isLoading$ | async">
+  </mat-progress-bar>
+  <div mat-dialog-content>
+    <fieldset [disabled]="isLoading$ | async" fxLayout="column">
+      <section fxLayout="column" *ngIf="data.timeRangeRequired">
+        <span translate>timewindow.time-period</span>
+        <tb-datetime-period
+          formControlName="fixedTimeWindow"
+          [fxShow]="data.timeRangeRequired"
+          [required]="data.timeRangeRequired"
+          style="padding-top: 8px;"></tb-datetime-period>
+      </section>
+      <section fxLayout="column" *ngIf="data.intervalRequired">
+        <span translate>timewindow.interval</span>
+        <tb-timeinterval
+          formControlName="aggregationInterval"
+          [min]="300000"
+          [max]="Number.MAX_VALUE"
+          [useCalendarIntervals]="true"
+          [fxShow]="data.intervalRequired"
+          [required]="data.intervalRequired"
+          style="padding-top: 8px"></tb-timeinterval>
+      </section>
+<!--      <section fxLayout="column" fxFlex [fxShow]="data.intervalRequired">-->
+<!--        <div class="aggregation-interval-slider-container" fxLayout="row" fxLayoutAlign="start center"-->
+<!--             fxLayout.xs="column" fxLayoutAlign.xs="stretch">-->
+<!--          <label translate>aggregation.limit</label>-->
+<!--          <div fxLayout="row" fxLayoutAlign="start center" fxFlex>-->
+<!--            <mat-slider fxFlex-->
+<!--                        discrete-->
+<!--                        min="{{minDatapointsLimit()}}"-->
+<!--                        max="{{maxDatapointsLimit()}}"><input matSliderThumb formControlName="limit"/>-->
+<!--            </mat-slider>-->
+<!--            <mat-form-field class="aggregation-interval-value">-->
+<!--              <input matInput formControlName="aggregationInterval" type="number" step="1"-->
+<!--                     [value]="reloginFormGroup.get('aggregationInterval').value"-->
+<!--                     min="{{minDatapointsLimit()}}"-->
+<!--                     max="{{maxDatapointsLimit()}}"/>-->
+<!--            </mat-form-field>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </section>-->
+
+      <div *ngIf="data.timeRangeRequired == true || data.intervalRequired == true"
+           style="padding-top: 30px"></div>
+      <mat-divider *ngIf="data.timeRangeRequired == true || data.intervalRequired == true" vertical="true"
+                   style="border: 1px dashed black;"></mat-divider>
+      <div *ngIf="data.timeRangeRequired == true || data.intervalRequired == true"
+           style="padding-bottom: 30px"></div>
+
+      <mat-form-field class="tb-appearance-transparent">
+        <mat-label translate>login.login-id</mat-label>
+        <input id="username-input" matInput type="text" autofocus formControlName="username" required/>
+        <mat-icon matPrefix>email</mat-icon>
+        <mat-error *ngIf="reloginFormGroup.get('username').invalid">
+          {{ 'login.invalid-login-id-format' | translate }}
+        </mat-error>
+      </mat-form-field>
+      <mat-form-field class="tb-appearance-transparent">
+        <mat-label translate>common.password</mat-label>
+        <input id="password-input" matInput type="password" formControlName="password"/>
+        <tb-toggle-password matSuffix></tb-toggle-password>
+        <mat-icon matPrefix>lock</mat-icon>
+      </mat-form-field>
+      <mat-form-field class="tb-appearance-transparent" *ngIf="data.remarksRequired">
+        <mat-label translate>relogin.relogin-remarks</mat-label>
+        <textarea id="remarks-input" matInput formControlName="remarks"></textarea>
+      </mat-form-field>
+    </fieldset>
+  </div>
+  <div mat-dialog-actions fxLayoutAlign="end center">
+    <button mat-button color="primary"
+            type="button"
+            [disabled]="(isLoading$ | async)"
+            (click)="cancel()" cdkFocusInitial>
+      {{ 'action.cancel' | translate }}
+    </button>
+    <button mat-raised-button color="primary"
+            type="submit"
+            [disabled]="(isLoading$ | async) || reloginFormGroup.invalid || !reloginFormGroup.dirty">
+      {{ 'relogin.submit' | translate }}
+    </button>
+  </div>
+</form>
