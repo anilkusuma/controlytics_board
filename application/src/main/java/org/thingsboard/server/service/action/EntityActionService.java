@@ -190,6 +190,7 @@ public class EntityActionService {
                         .build());
             case UPDATED:
             case DELETED:
+            case CREDENTIALS_RESET_REQUEST:
                 notificationRuleProcessor.process(EntityActionTrigger.builder()
                         .tenantId(tenantId)
                         .entityId(entityId)

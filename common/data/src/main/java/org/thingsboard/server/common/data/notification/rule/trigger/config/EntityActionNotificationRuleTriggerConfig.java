@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 import org.thingsboard.server.common.data.EntityType;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -33,10 +34,19 @@ public class EntityActionNotificationRuleTriggerConfig implements NotificationRu
     private boolean created;
     private boolean updated;
     private boolean deleted;
+    private boolean resetPasswordRequested;
 
     @Override
     public NotificationRuleTriggerType getTriggerType() {
         return NotificationRuleTriggerType.ENTITY_ACTION;
+    }
+
+    @Override
+    public String getDeduplicationKey() {
+        if (resetPasswordRequested) {
+            return UUID.randomUUID().toString();
+        }
+        return "#";
     }
 
 }

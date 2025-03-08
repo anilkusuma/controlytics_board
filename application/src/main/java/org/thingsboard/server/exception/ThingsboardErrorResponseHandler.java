@@ -47,12 +47,11 @@ import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.server.common.data.exception.ThingsboardErrorCode;
 import org.thingsboard.server.common.data.exception.ThingsboardException;
 import org.thingsboard.server.common.msg.tools.TbRateLimitsException;
-import org.thingsboard.server.service.security.exception.AuthMethodNotSupportedException;
-import org.thingsboard.server.service.security.exception.JwtExpiredTokenException;
-import org.thingsboard.server.service.security.exception.UserPasswordExpiredException;
-import org.thingsboard.server.service.security.exception.UserPasswordNotValidException;
+import org.thingsboard.server.service.security.exception.*;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -210,12 +209,19 @@ public class ThingsboardErrorResponseHandler extends ResponseEntityExceptionHand
             JacksonUtil.writeValue(response.getWriter(), ThingsboardErrorResponse.of("Token has expired", ThingsboardErrorCode.JWT_TOKEN_EXPIRED, HttpStatus.UNAUTHORIZED));
         } else if (authenticationException instanceof AuthMethodNotSupportedException) {
             JacksonUtil.writeValue(response.getWriter(), ThingsboardErrorResponse.of(authenticationException.getMessage(), ThingsboardErrorCode.AUTHENTICATION, HttpStatus.UNAUTHORIZED));
-        } else if (authenticationException instanceof UserPasswordExpiredException) {
-            UserPasswordExpiredException expiredException = (UserPasswordExpiredException) authenticationException;
+        } else if (authenticationException instanceof UserPasswordExpiredException expiredException) {
             String resetToken = expiredException.getResetToken();
             JacksonUtil.writeValue(response.getWriter(), ThingsboardCredentialsExpiredResponse.of(expiredException.getMessage(), resetToken));
-        } else if (authenticationException instanceof UserPasswordNotValidException) {
-            UserPasswordNotValidException expiredException = (UserPasswordNotValidException) authenticationException;
+        } else if (authenticationException instanceof ResetPasswordException resetPasswordException) {
+            try {
+                final String resetLink = new URI(resetPasswordException.getResetPasswordLink()).toString();
+                response.setStatus(HttpServletResponse.SC_SEE_OTHER);
+                response.setHeader("Location", resetLink);
+            } catch (URISyntaxException e) {
+                log.error("Failed to redirect to reset password link", e);
+                JacksonUtil.writeValue(response.getWriter(), ThingsboardCredentialsViolationResponse.of(resetPasswordException.getMessage()));
+            }
+        } else if (authenticationException instanceof UserPasswordNotValidException expiredException) {
             JacksonUtil.writeValue(response.getWriter(), ThingsboardCredentialsViolationResponse.of(expiredException.getMessage()));
         } else {
             JacksonUtil.writeValue(response.getWriter(), ThingsboardErrorResponse.of("Authentication failed", ThingsboardErrorCode.AUTHENTICATION, HttpStatus.UNAUTHORIZED));

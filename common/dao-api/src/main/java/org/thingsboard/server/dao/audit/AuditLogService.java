@@ -17,6 +17,7 @@ package org.thingsboard.server.dao.audit;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import org.thingsboard.server.common.data.HasName;
+import org.thingsboard.server.common.data.User;
 import org.thingsboard.server.common.data.audit.ActionType;
 import org.thingsboard.server.common.data.audit.AuditLog;
 import org.thingsboard.server.common.data.id.CustomerId;
@@ -36,7 +37,11 @@ public interface AuditLogService {
 
     PageData<AuditLog> findAuditLogsByTenantIdAndEntityId(TenantId tenantId, EntityId entityId, List<ActionType> actionTypes, TimePageLink pageLink);
 
-    PageData<AuditLog> findAuditLogsByTenantId(TenantId tenantId, List<ActionType> actionTypes, TimePageLink pageLink);
+    PageData<AuditLog> findAuditLogsByTenantId(TenantId tenantId, List<ActionType> actionTypes,
+                                               TimePageLink pageLink);
+
+    byte[] getAuditLogAsPdf(TenantId tenantId, User currentUser, List<ActionType> actionTypes, TimePageLink pageLink,
+                            String remarks);
 
     <E extends HasName, I extends EntityId> ListenableFuture<Void> logEntityAction(
             TenantId tenantId,

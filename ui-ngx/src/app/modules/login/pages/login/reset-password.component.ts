@@ -35,9 +35,11 @@ export class ResetPasswordComponent extends PageComponent implements OnInit, OnD
   isExpiredPassword: boolean;
 
   resetToken = '';
+  userId = '';
   sub: Subscription;
 
   resetPassword = this.fb.group({
+    userId: ['', { disabled: true }],
     newPassword: [''],
     newPassword2: ['']
   });
@@ -56,6 +58,8 @@ export class ResetPasswordComponent extends PageComponent implements OnInit, OnD
       .queryParams
       .subscribe(params => {
         this.resetToken = params.resetToken || '';
+        this.userId = this.base64Decode(params.userId || '');
+        this.resetPassword.get('userId').setValue(this.userId);
       });
   }
 
@@ -72,6 +76,21 @@ export class ResetPasswordComponent extends PageComponent implements OnInit, OnD
       this.authService.resetPassword(
         this.resetToken,
         this.resetPassword.get('newPassword').value).subscribe();
+    }
+  }
+
+  private base64Decode(str: string): string {
+    try {
+      // Convert base64 to byte array
+      const binaryStr = window.atob(str || '');
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      // Convert byte array to string using TextDecoder
+      return new TextDecoder().decode(bytes);
+    } catch (e) {
+      return '';
     }
   }
 }

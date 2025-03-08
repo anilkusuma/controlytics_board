@@ -34,6 +34,7 @@ public class EntityActionTriggerProcessor implements NotificationRuleTriggerProc
         return ((trigger.getActionType() == ActionType.ADDED && triggerConfig.isCreated())
                 || (trigger.getActionType() == ActionType.UPDATED && triggerConfig.isUpdated())
                 || (trigger.getActionType() == ActionType.DELETED && triggerConfig.isDeleted()))
+                || (trigger.getActionType() == ActionType.CREDENTIALS_RESET_REQUEST && triggerConfig.isResetPasswordRequested())
                 && emptyOrContains(triggerConfig.getEntityTypes(), trigger.getEntityId().getEntityType());
     }
 

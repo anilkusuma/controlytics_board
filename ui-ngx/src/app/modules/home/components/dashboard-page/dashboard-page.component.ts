@@ -69,7 +69,7 @@ import {
 import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
 import { MediaBreakpoints } from '@shared/models/constants';
 import { AuthUser } from '@shared/models/user.model';
-import { getCurrentAuthState } from '@core/auth/auth.selectors';
+import {getCurrentAuthState, getCurrentAuthUser} from '@core/auth/auth.selectors';
 import {
   Widget,
   WidgetConfig,
@@ -259,7 +259,7 @@ export class DashboardPageComponent extends PageComponent implements IDashboardC
   rightLayoutSize: {width: string; height: string} = {width: '100%', height: '100%'};
 
   private dashboardLogoCache: SafeUrl;
-  private defaultDashboardLogo = 'assets/logo_title_white.svg';
+  private defaultDashboardLogo = 'assets/granules_logo.jpg';
 
   private dashboardResize$: ResizeObserver;
 
@@ -614,6 +614,9 @@ export class DashboardPageComponent extends PageComponent implements IDashboardC
   }
 
   public displayExport(): boolean {
+    if (this.getCurrentAuthUser(this.store).authority === Authority.CUSTOMER_USER) {
+      return false;
+    }
     if (this.dashboard.configuration.settings &&
       isDefined(this.dashboard.configuration.settings.showDashboardExport)) {
       return this.dashboard.configuration.settings.showDashboardExport;
@@ -641,6 +644,9 @@ export class DashboardPageComponent extends PageComponent implements IDashboardC
   }
 
   public displayDashboardsSelect(): boolean {
+    if (this.getCurrentAuthUser(this.store).authority === Authority.CUSTOMER_USER) {
+      return false;
+    }
     if (this.dashboard.configuration.settings &&
       isDefined(this.dashboard.configuration.settings.showDashboardsSelect)) {
       return this.dashboard.configuration.settings.showDashboardsSelect;
@@ -1583,4 +1589,6 @@ export class DashboardPageComponent extends PageComponent implements IDashboardC
       });
     }
   }
+
+  protected readonly getCurrentAuthUser = getCurrentAuthUser;
 }

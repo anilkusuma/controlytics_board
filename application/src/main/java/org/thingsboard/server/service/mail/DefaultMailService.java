@@ -428,6 +428,10 @@ public class DefaultMailService implements MailService {
 
     private void sendMail(JavaMailSenderImpl mailSender, String mailFrom, String email,
                           String subject, String message, long timeout) throws ThingsboardException {
+        if (true) {
+            log.info("Ignoring trying to send email to: {} with subject: {}", email, subject);
+            return;
+        }
         try {
             MimeMessage mimeMsg = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMsg, UTF_8);
@@ -438,7 +442,8 @@ public class DefaultMailService implements MailService {
 
             sendMailWithTimeout(mailSender, helper.getMimeMessage(), timeout);
         } catch (Exception e) {
-            throw handleException(e);
+            log.warn("Unable to send mail: {}, ignoring error: ", e.getMessage());
+            //throw handleException(e);
         }
     }
 

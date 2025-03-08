@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,14 +32,14 @@ import org.thingsboard.server.common.data.StringUtils;
 import org.thingsboard.server.common.data.audit.ActionType;
 import org.thingsboard.server.common.data.audit.AuditLog;
 import org.thingsboard.server.common.data.exception.ThingsboardException;
-import org.thingsboard.server.common.data.id.CustomerId;
-import org.thingsboard.server.common.data.id.EntityIdFactory;
-import org.thingsboard.server.common.data.id.TenantId;
-import org.thingsboard.server.common.data.id.UserId;
+import org.thingsboard.server.common.data.id.*;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.TimePageLink;
+import org.thingsboard.server.common.data.reports.ReportGenerationAuditLogData;
 import org.thingsboard.server.config.annotations.ApiOperation;
 import org.thingsboard.server.queue.util.TbCoreComponent;
+import org.thingsboard.server.service.security.model.SecurityUser;
+import redis.clients.jedis.search.aggr.SortedField;
 
 import java.util.Arrays;
 import java.util.List;
@@ -56,12 +57,15 @@ import static org.thingsboard.server.controller.ControllerConstants.SORT_ORDER_D
 import static org.thingsboard.server.controller.ControllerConstants.TENANT_AUTHORITY_PARAGRAPH;
 import static org.thingsboard.server.controller.ControllerConstants.USER_ID_PARAM_DESCRIPTION;
 
+@Slf4j
 @RestController
 @TbCoreComponent
 @RequestMapping("/api")
 public class AuditLogController extends BaseController {
 
     private static final String AUDIT_LOG_QUERY_START_TIME_DESCRIPTION = "The start timestamp in milliseconds of the search time range over the AuditLog class field: 'createdTime'.";
+    private static final String AUDIT_LOG_AS_PDF_REMARKS_DESCRIPTION = "Remarks given by user for downloading the audit logs as PDF. " +
+            "This parameter is mandatory for downloading the audit logs as PDF. ";
     private static final String AUDIT_LOG_QUERY_END_TIME_DESCRIPTION = "The end timestamp in milliseconds of the search time range over the AuditLog class field: 'createdTime'.";
     private static final String AUDIT_LOG_QUERY_ACTION_TYPES_DESCRIPTION = "A String value representing comma-separated list of action types. " +
             "This parameter is optional, but it can be used to filter results to fetch only audit logs of specific action types. " +
@@ -75,7 +79,7 @@ public class AuditLogController extends BaseController {
             notes = "Returns a page of audit logs related to the targeted customer entities (devices, assets, etc.), " +
                     "and users actions (login, logout, etc.) that belong to this customer. " +
                     PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
-    @PreAuthorize("hasAuthority('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
     @RequestMapping(value = "/audit/logs/customer/{customerId}", params = {"pageSize", "page"}, method = RequestMethod.GET)
     @ResponseBody
     public PageData<AuditLog> getAuditLogsByCustomerId(
@@ -108,7 +112,7 @@ public class AuditLogController extends BaseController {
             notes = "Returns a page of audit logs related to the actions of targeted user. " +
                     "For example, RPC call to a particular device, or alarm acknowledgment for a specific device, etc. " +
                     PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
-    @PreAuthorize("hasAuthority('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
     @RequestMapping(value = "/audit/logs/user/{userId}", params = {"pageSize", "page"}, method = RequestMethod.GET)
     @ResponseBody
     public PageData<AuditLog> getAuditLogsByUserId(
@@ -142,7 +146,7 @@ public class AuditLogController extends BaseController {
                     "Basically, this API call is used to get the full lifecycle of some specific entity. " +
                     "For example to see when a device was created, updated, assigned to some customer, or even deleted from the system. " +
                     PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
-    @PreAuthorize("hasAuthority('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
     @RequestMapping(value = "/audit/logs/entity/{entityType}/{entityId}", params = {"pageSize", "page"}, method = RequestMethod.GET)
     @ResponseBody
     public PageData<AuditLog> getAuditLogsByEntityId(
@@ -177,7 +181,7 @@ public class AuditLogController extends BaseController {
     @ApiOperation(value = "Get all audit logs (getAuditLogs)",
             notes = "Returns a page of audit logs related to all entities in the scope of the current user's Tenant. " +
                     PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
-    @PreAuthorize("hasAuthority('TENANT_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
     @RequestMapping(value = "/audit/logs", params = {"pageSize", "page"}, method = RequestMethod.GET)
     @ResponseBody
     public PageData<AuditLog> getAuditLogs(
@@ -201,6 +205,46 @@ public class AuditLogController extends BaseController {
         List<ActionType> actionTypes = parseActionTypesStr(actionTypesStr);
         TimePageLink pageLink = createTimePageLink(pageSize, page, textSearch, sortProperty, sortOrder, getStartTime(startTime), getEndTime(endTime));
         return checkNotNull(auditLogService.findAuditLogsByTenantId(tenantId, actionTypes, pageLink));
+    }
+
+    @ApiOperation(value = "Get all audit logs as PDF (getAuditLogs)",
+            notes = "Returns a page of audit logs related to all entities in the scope of the current user's Tenant. " +
+                    PAGE_DATA_PARAMETERS + TENANT_AUTHORITY_PARAGRAPH)
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
+    @RequestMapping(value = "/audit/logs/pdf", params = {"remarks", "startTime", "endTime"}, method = RequestMethod.GET)
+    @ResponseBody
+    public byte[] getAuditLogsAsPdf(
+            @Parameter(description = AUDIT_LOG_QUERY_START_TIME_DESCRIPTION)
+            @RequestParam() Long startTime,
+            @Parameter(description = AUDIT_LOG_QUERY_END_TIME_DESCRIPTION)
+            @RequestParam() Long endTime,
+            @Parameter(description = AUDIT_LOG_QUERY_ACTION_TYPES_DESCRIPTION)
+            @RequestParam(name = "actionTypes", required = false) String actionTypesStr,
+            @Parameter(description = AUDIT_LOG_AS_PDF_REMARKS_DESCRIPTION)
+            @RequestParam() String remarks) throws ThingsboardException {
+        try {
+            final SecurityUser currentUser = getCurrentUser();
+            final TenantId tenantId = currentUser.getTenantId();
+            final List<ActionType> actionTypes = parseActionTypesStr(actionTypesStr);
+            final TimePageLink pageLink = createTimePageLink(500, 0, null,
+                    "createdTime",
+                    SortedField.SortOrder.DESC.name(),
+                    getStartTime(startTime), getEndTime(endTime));
+            final byte[] pdf = auditLogService.getAuditLogAsPdf(tenantId, currentUser,
+                    actionTypes, pageLink,
+                    remarks);
+            auditLogService.logEntityAction(tenantId, currentUser.getCustomerId(), currentUser.getId(),
+                    currentUser.getEmail(), currentUser.getId(), currentUser,
+                    ActionType.REPORT_GENERATED, null,
+                    ReportGenerationAuditLogData.builder().reportName("Audit Log Report")
+                            .reportId("AUDIT_LOG_REPORT")
+                            .startTimeInMs(startTime)
+                            .endTimeInMs(endTime).build());
+            return checkNotNull(pdf);
+        } catch (Exception e) {
+            log.error("Failed to get audit logs as PDF: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     private List<ActionType> parseActionTypesStr(String actionTypesStr) {

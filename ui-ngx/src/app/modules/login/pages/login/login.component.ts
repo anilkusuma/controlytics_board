@@ -19,11 +19,13 @@ import { AuthService } from '@core/auth/auth.service';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { PageComponent } from '@shared/components/page.component';
-import { UntypedFormBuilder } from '@angular/forms';
+import {UntypedFormBuilder, Validators} from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Constants } from '@shared/models/constants';
 import { Router } from '@angular/router';
 import { OAuth2ClientInfo } from '@shared/models/oauth2.models';
+import { take, filter } from 'rxjs/operators';
+import { selectUserReady } from '@core/auth/auth.selectors';
 
 @Component({
   selector: 'tb-login',
@@ -35,7 +37,7 @@ export class LoginComponent extends PageComponent implements OnInit {
   passwordViolation = false;
 
   loginFormGroup = this.fb.group({
-    username: '',
+    username: ['', [Validators.required]],
     password: ''
   });
   oauth2Clients: Array<OAuth2ClientInfo> = null;
@@ -49,6 +51,12 @@ export class LoginComponent extends PageComponent implements OnInit {
 
   ngOnInit() {
     this.oauth2Clients = this.authService.oauth2Clients;
+    this.store.select(selectUserReady).pipe(
+      take(1),
+      filter(userReady => userReady.isAuthenticated)
+    ).subscribe(() => {
+      this.authService.gotoDefaultPlace(true);
+    });
   }
 
   login(): void {

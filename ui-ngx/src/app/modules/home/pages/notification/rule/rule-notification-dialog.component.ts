@@ -278,7 +278,8 @@ export class RuleNotificationDialogComponent extends
         entityTypes: [[EntityType.DEVICE], Validators.required],
         created: [false],
         updated: [false],
-        deleted: [false]
+        deleted: [false],
+        resetPasswordRequested: [false],
       })
     });
 

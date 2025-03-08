@@ -193,6 +193,7 @@ public class DefaultNotificationSettingsService implements NotificationSettingsS
         defaultNotifications.create(tenantId, DefaultNotifications.alarmUpdate, tenantAdmins.getId());
         defaultNotifications.create(tenantId, DefaultNotifications.entityAction, tenantAdmins.getId());
         defaultNotifications.create(tenantId, DefaultNotifications.deviceActivity, tenantAdmins.getId());
+        defaultNotifications.create(tenantId, DefaultNotifications.requestResetPasswordActivity, tenantAdmins.getId());
         defaultNotifications.create(tenantId, DefaultNotifications.alarmComment, tenantAdmins.getId());
         defaultNotifications.create(tenantId, DefaultNotifications.alarmAssignment, affectedUser.getId());
         defaultNotifications.create(tenantId, DefaultNotifications.ruleEngineComponentLifecycleFailure, tenantAdmins.getId());

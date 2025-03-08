@@ -16,7 +16,7 @@
 
 -->
 <div class="profile-container" fxLayout="column" fxLayoutGap="8px">
-  <mat-card appearance="outlined" class="profile-card" fxLayout="column">
+  <mat-card appearance="outlined" class="profile-card" fxLayout="column" *ngIf="user.authority === authority.SYS_ADMIN">
     <mat-card-title style="margin-bottom: 8px;">
       <span class="mat-headline-5 card-title" translate>profile.jwt-token</span>
     </mat-card-title>

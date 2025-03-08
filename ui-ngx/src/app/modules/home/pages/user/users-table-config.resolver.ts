@@ -86,7 +86,7 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
       new DateEntityTableColumn<User>('createdTime', 'common.created-time', this.datePipe, '150px'),
       new EntityTableColumn<User>('firstName', 'user.first-name', '33%'),
       new EntityTableColumn<User>('lastName', 'user.last-name', '33%'),
-      new EntityTableColumn<User>('email', 'user.email', '33%')
+      new EntityTableColumn<User>('email', 'user.login-id', '33%')
     );
 
     this.config.deleteEnabled = user => user && user.id && user.id.id !== this.authUser.id.id;
@@ -141,16 +141,16 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
   updateActionCellDescriptors(auth: AuthState) {
     this.config.cellActionDescriptors.splice(0);
     if (auth.userTokenAccessEnabled) {
-      this.config.cellActionDescriptors.push(
-        {
-          name: this.authority === Authority.TENANT_ADMIN ?
-            this.translate.instant('user.login-as-tenant-admin') :
-            this.translate.instant('user.login-as-customer-user'),
-          icon: 'mdi:login',
-          isEnabled: () => true,
-          onAction: ($event, entity) => this.loginAsUser($event, entity)
-        }
-      );
+      // this.config.cellActionDescriptors.push(
+      //   {
+      //     name: this.authority === Authority.TENANT_ADMIN ?
+      //       this.translate.instant('user.login-as-tenant-admin') :
+      //       this.translate.instant('user.login-as-customer-user'),
+      //     icon: 'mdi:login',
+      //     isEnabled: () => true,
+      //     onAction: ($event, entity) => this.loginAsUser($event, entity)
+      //   }
+      // );
     }
   }
 
@@ -207,6 +207,24 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
     );
   }
 
+  displayResetPasswordLink($event: Event, user: User) {
+    if ($event) {
+      $event.stopPropagation();
+    }
+    this.userService.getResetPasswordLink(user.id.id).subscribe(
+      (resetPasswordLink) => {
+        this.dialog.open<ActivationLinkDialogComponent, ActivationLinkDialogData,
+          void>(ActivationLinkDialogComponent, {
+          disableClose: true,
+          panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
+          data: {
+            activationLink: resetPasswordLink
+          }
+        });
+      }
+    );
+  }
+
   resendActivation($event: Event, user: User) {
     if ($event) {
       $event.stopPropagation();
@@ -256,6 +274,9 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
         return true;
       case 'enableAccount':
         this.setUserCredentialsEnabled(action.event, action.entity, true);
+        return true;
+      case 'displayResetPasswordLink':
+        this.displayResetPasswordLink(action.event, action.entity);
         return true;
     }
     return false;

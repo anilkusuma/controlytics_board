@@ -25,22 +25,27 @@ import {
   AuditLog,
   AuditLogMode
 } from '@shared/models/audit-log.models';
-import { EntityTypeResource, entityTypeTranslations } from '@shared/models/entity-type.models';
-import { AuditLogService } from '@core/http/audit-log.service';
-import { TranslateService } from '@ngx-translate/core';
-import { DatePipe } from '@angular/common';
-import { Direction } from '@shared/models/page/sort-order';
-import { MatDialog } from '@angular/material/dialog';
-import { TimePageLink } from '@shared/models/page/page-link';
-import { Observable } from 'rxjs';
-import { PageData } from '@shared/models/page/page-data';
-import { EntityId } from '@shared/models/id/entity-id';
-import { UserId } from '@shared/models/id/user-id';
-import { CustomerId } from '@shared/models/id/customer-id';
+import {EntityType, EntityTypeResource, entityTypeTranslations} from '@shared/models/entity-type.models';
+import {AuditLogService} from '@core/http/audit-log.service';
+import {TranslateService} from '@ngx-translate/core';
+import {DatePipe} from '@angular/common';
+import {Direction} from '@shared/models/page/sort-order';
+import {MatDialog} from '@angular/material/dialog';
+import {PageLink, TimePageLink} from '@shared/models/page/page-link';
+import {Observable} from 'rxjs';
+import {PageData} from '@shared/models/page/page-data';
+import {EntityId} from '@shared/models/id/entity-id';
+import {UserId} from '@shared/models/id/user-id';
+import {CustomerId} from '@shared/models/id/customer-id';
 import {
   AuditLogDetailsDialogComponent,
   AuditLogDetailsDialogData
 } from '@home/components/audit-log/audit-log-details-dialog.component';
+import {
+  ReloginDialogComponent,
+  ReLoginDialogComponentData, ReLoginDialogComponentResponse
+} from "@home/dialogs/re-login/relogin-dialog.component";
+import {filter, map} from "rxjs/operators";
 
 export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLink> {
 
@@ -64,50 +69,81 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
     this.searchEnabled = true;
     this.addEnabled = false;
     this.entitiesDeleteEnabled = false;
-    this.actionsColumnTitle = 'audit-log.details';
+    //this.actionsColumnTitle = 'audit-log.details';
     this.entityTranslations = {
       noEntities: 'audit-log.no-audit-logs-prompt',
       search: 'audit-log.search'
     };
-    this.entityResources = {
-    } as EntityTypeResource<AuditLog>;
+    this.entityResources = {} as EntityTypeResource<AuditLog>;
 
-    this.entitiesFetchFunction = pageLink => this.fetchAuditLogs(pageLink);
+    this.entitiesFetchFunction = pageLink => this.fetchAndFilterAuditLogs(pageLink);
 
     this.defaultSortOrder = {property: 'createdTime', direction: Direction.DESC};
 
     this.columns.push(
       new DateEntityTableColumn<AuditLog>('createdTime', 'audit-log.timestamp', this.datePipe, '150px'));
 
-    if (this.auditLogMode !== AuditLogMode.ENTITY) {
-      this.columns.push(
-        new EntityTableColumn<AuditLog>('entityType', 'audit-log.entity-type', '20%',
-          (entity) => translate.instant(entityTypeTranslations.get(entity.entityId.entityType).type)),
-        new EntityTableColumn<AuditLog>('entityName', 'audit-log.entity-name', '20%'),
-      );
-    }
+    this.columns.push(
+      new EntityTableColumn<AuditLog>('details', 'audit-log.description-of-event', '45%',
+        (entity) => this.getDetailsString(entity),
+        () => ({}), false)
+    );
 
     if (this.auditLogMode !== AuditLogMode.USER) {
       this.columns.push(
-        new EntityTableColumn<AuditLog>('userName', 'audit-log.user', '33%')
+        new EntityTableColumn<AuditLog>('userName', 'audit-log.user', '20%')
       );
     }
 
     this.columns.push(
-      new EntityTableColumn<AuditLog>('actionType', 'audit-log.type', '33%',
-        (entity) => translate.instant(actionTypeTranslations.get(entity.actionType))),
-      new EntityTableColumn<AuditLog>('actionStatus', 'audit-log.status', '33%',
+      new EntityTableColumn<AuditLog>('actionStatus', 'audit-log.status', '10%',
         (entity) => translate.instant(actionStatusTranslations.get(entity.actionStatus)))
     );
 
-    this.cellActionDescriptors.push(
-      {
-        name: this.translate.instant('audit-log.details'),
-        icon: 'more_horiz',
+    if (this.auditLogMode === AuditLogMode.TENANT) {
+      this.headerActionDescriptors.push({
+        name: this.translate.instant('audit-log.download-audit-logs'),
+        icon: 'mdi:download',
         isEnabled: () => true,
-        onAction: ($event, entity) => this.showAuditLogDetails(entity)
-      }
-    );
+        onAction: ($event) => {
+          this.dialog.open<ReloginDialogComponent, ReLoginDialogComponentData, ReLoginDialogComponentResponse>(ReloginDialogComponent, {
+            disableClose: true,
+            panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
+            data: <ReLoginDialogComponentData> {
+              remarksRequired: false,
+              timeRangeRequired: false,
+              intervalRequired: false
+            },
+          }).afterClosed().subscribe(
+            (result) => {
+              if (result?.reloginStatus) {
+                console.log('Relogin successful, with remarks: ' + result.remarks);
+                this.downloadAuditLogs(this.getTable().pageLink, result.remarks).subscribe(
+                  (blob) => {
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = `audit_logs_${this.datePipe.transform(new Date(), 'dd_MM_yyyy_HH_mm_ss')}.pdf`;
+                    link.click();
+                  }
+                );
+              } else {
+                console.log('Relogin failed');
+              }
+            }
+          );
+        }
+      });
+    }
+
+    // this.cellActionDescriptors.push(
+    //   {
+    //     name: this.translate.instant('audit-log.details'),
+    //     icon: 'more_horiz',
+    //     isEnabled: () => true,
+    //     onAction: ($event, entity) => this.showAuditLogDetails(entity)
+    //   }
+    // );
   }
 
   fetchAuditLogs(pageLink: TimePageLink): Observable<PageData<AuditLog>> {
@@ -120,6 +156,93 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
         return this.auditLogService.getAuditLogsByUserId(this.userId.id, pageLink);
       case AuditLogMode.CUSTOMER:
         return this.auditLogService.getAuditLogsByCustomerId(this.customerId.id, pageLink);
+    }
+  }
+
+
+  fetchAndFilterAuditLogs(pageLink: TimePageLink): Observable<PageData<AuditLog>> {
+    return this.fetchAuditLogs(pageLink).pipe(
+      map((pageData) => {
+        pageData.data = pageData.data.filter((auditLog) => {
+          return auditLog.actionType != 'ADDED_COMMENT'
+        });
+        return pageData;
+      })
+    );
+  }
+
+
+  downloadAuditLogs(pageLink: PageLink, remarks: string): Observable<Blob> {
+    switch (this.auditLogMode) {
+      case AuditLogMode.TENANT:
+        return this.auditLogService.getAuditLogsPdf(pageLink, remarks);
+    }
+  }
+
+  getDetailsString(entity: AuditLog): string {
+    if (entity.actionType === 'ALARM_ACK' || entity.actionType === 'ALARM_ASSIGNED'
+      || entity.actionType === 'ALARM_CLEAR' || entity.actionType === 'ALARM_UNASSIGNED') {
+      return this.translate.instant(actionTypeTranslations.get(entity.actionType)) + '<br></br>'
+          + 'Alarm: ' + entity.entityName + '<br>' + this.getSubDetailsString(entity);
+    }
+    return this.translate.instant(actionTypeTranslations.get(entity.actionType)) + '<br></br>'
+          + this.getSubDetailsString(entity);
+  }
+
+  getSubDetailsString(entity: AuditLog): string {
+    switch (entity.actionType) {
+      case 'ATTRIBUTES_DELETED':
+        return entity.entityId.entityType + ':' + entity.entityName + '<br></br>'
+            + entity.actionData?.['attributes']?.join(', ') || '';
+      case 'ATTRIBUTES_READ':
+        return entity.entityId.entityType + ':' + entity.entityName + '<br></br>'
+            + entity.actionData?.['attributes']?.join(', ') || '';
+      case 'ATTRIBUTES_UPDATED':
+        let result = entity.entityId.entityType + ':' + entity.entityName + '<br></br>';
+        if (entity.actionData?.attributes) {
+          console.log(entity.actionData.attributes);
+          for (const [key, value] of Object.entries(entity.actionData.attributes)) {
+            const attributeValue = value as any;
+            console.log(attributeValue);
+            if (attributeValue instanceof Object && attributeValue['old_value']) {
+              result += `${key}: Changed FROM: ${attributeValue['old_value']} TO: ${attributeValue['new_value']}. <br>`;
+            } else if (attributeValue instanceof Object && attributeValue['old_value'] == undefined) {
+              result += `${key}: Added: ${attributeValue['new_value']}. <br>`;
+            } else if (attributeValue instanceof Array) {
+              result += `${key}: ${attributeValue.join(', ')}. <br>`;
+            } else if (attributeValue !== null) {
+              result += `${key}: Changed TO: ${attributeValue.toString()}. <br>`;
+            }
+          }
+          if (entity.actionData?.remarks) {
+            result += `Remarks: ${entity.actionData.remarks}`;
+          }
+        }
+        return result;
+      case 'LOGIN':
+        return '';
+      case 'LOGOUT':
+        return '';
+      case 'LOCKOUT':
+        return '';
+      case 'CREDENTIALS_RESET_REQUEST':
+        return '';
+      case 'ALARM_ACK':
+      case 'ALARM_ASSIGNED':
+      case 'ALARM_CLEAR':
+      case 'ALARM_UNASSIGNED':
+        return (entity.actionData?.['entity']?.['originatorName'] ? `Device : ${entity.actionData['entity']['originatorName']} <br>` : '')
+          + (entity.actionData?.['entity']?.['details']?.['createdValue'] ? `Created Value: ${entity.actionData['entity']['details']['createdValue']} <br>` : '')
+          + (entity.actionData?.['entity']?.['details']?.['clearedValue'] ? `Cleared Value: ${entity.actionData['entity']['details']['clearedValue']} <br>` : '')
+
+      case 'REPORT_GENERATED':
+        return (entity.actionData?.['reportName'] ? `Report: ${entity.actionData['reportName']} <br>` : '') +
+          (entity.actionData?.['startTime'] ? `Start Time: ${entity.actionData['startTime']} <br>`  : '') +
+          (entity.actionData?.['endTime'] ? `End Time: ${entity.actionData['endTime']} <br>` : '');
+      case 'UPDATED':
+      case 'UPDATED_COMMENT':
+      default:
+        return entity.entityId.entityType + ':' + entity.entityName;
     }
   }
 

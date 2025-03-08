@@ -33,7 +33,8 @@ export class ResetPasswordRequestComponent extends PageComponent implements OnIn
   clicked: boolean = false;
 
   requestPasswordRequest = this.fb.group({
-    email: ['', [Validators.email, Validators.required]]
+    username: ['', [Validators.required, Validators.maxLength(256),
+      Validators.pattern(/^[0-9]*$/)]],
   }, {updateOn: 'submit'});
 
   constructor(protected store: Store<AppState>,
@@ -54,10 +55,10 @@ export class ResetPasswordRequestComponent extends PageComponent implements OnIn
   sendResetPasswordLink() {
     if (this.requestPasswordRequest.valid) {
       this.disableInputs();
-      this.authService.sendResetPasswordLink(this.requestPasswordRequest.get('email').value).subscribe(
+      this.authService.sendResetPasswordLink(this.requestPasswordRequest.get('username').value).subscribe(
         () => {
           this.store.dispatch(new ActionNotificationShow({
-            message: this.translate.instant('login.password-link-sent-message'),
+            message: this.translate.instant('login.reset-password-request-sent-message'),
             type: 'success'
           }));
         }

@@ -153,6 +153,10 @@ const none: AggFunction = (aggData: AggData, value?: any) => {
   aggData.aggValue = value;
 };
 
+const closest: AggFunction = (aggData: AggData, value?: any) => {
+  aggData.aggValue = value;
+}
+
 const MAX_INTERVAL_TIMEOUT = Math.pow(2,31)-1;
 
 export class DataAggregator {
@@ -213,6 +217,8 @@ export class DataAggregator {
         return count;
       case AggregationType.NONE:
         return none;
+      case AggregationType.CLOSEST:
+        return closest;
       default:
         return avg;
     }

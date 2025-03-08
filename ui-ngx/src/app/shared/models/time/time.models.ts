@@ -98,6 +98,7 @@ export enum AggregationType {
   MAX = 'MAX',
   AVG = 'AVG',
   SUM = 'SUM',
+  CLOSEST = 'CLOSEST',
   COUNT = 'COUNT',
   NONE = 'NONE'
 }
@@ -108,6 +109,7 @@ export const aggregationTranslations = new Map<AggregationType, string>(
     [AggregationType.MAX, 'aggregation.max'],
     [AggregationType.AVG, 'aggregation.avg'],
     [AggregationType.SUM, 'aggregation.sum'],
+    [AggregationType.CLOSEST, 'aggregation.closest'],
     [AggregationType.COUNT, 'aggregation.count'],
     [AggregationType.NONE, 'aggregation.none'],
   ]

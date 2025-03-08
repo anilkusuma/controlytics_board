@@ -36,7 +36,7 @@
     <mat-card-content style="padding-top: 16px;">
       <form [formGroup]="profile" (ngSubmit)="save()">
         <fieldset [disabled]="isLoading$ | async">
-          <mat-form-field class="mat-block">
+          <mat-form-field class="mat-block" *ngIf="false">
             <mat-label translate>user.email</mat-label>
             <input matInput type="email" formControlName="email" required/>
             <mat-error *ngIf="profile.get('email').hasError('required')">
@@ -54,12 +54,13 @@
             <mat-label translate>user.last-name</mat-label>
             <input matInput formControlName="lastName"/>
           </mat-form-field>
-          <tb-phone-input [required]="false"
+          <div style="height: 16px;"></div>
+          <tb-phone-input *ngIf="false" [required]="false"
                           label="{{ 'contact.phone' | translate }}"
                           [enableFlagsSelect]="true"
                           formControlName="phone">
           </tb-phone-input>
-          <mat-form-field class="mat-block">
+          <mat-form-field class="mat-block" *ngIf="false">
             <mat-label translate>language.language</mat-label>
             <mat-select formControlName="language">
               <mat-option *ngFor="let lang of languageList" [value]="lang">
@@ -67,7 +68,7 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
-          <section class="tb-home-dashboard" fxFlex fxLayout="column" fxLayout.gt-sm="row" *ngIf="!isSysAdmin()">
+          <section  class="tb-home-dashboard" fxFlex fxLayout="column" fxLayout.gt-sm="row" *ngIf="false" >
             <tb-dashboard-autocomplete
               fxFlex
               label="{{ 'dashboard.home-dashboard' | translate }}"

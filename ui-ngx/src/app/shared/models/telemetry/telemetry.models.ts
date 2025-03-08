@@ -999,3 +999,18 @@ export class NotificationSubscriber extends WsSubscriber {
     }
   }
 }
+
+
+export class DownloadEntityTimeseriesPdfReportRequest {
+  entityId: EntityId;
+  keys: Array<string>;
+  startTs: number;
+  endTs: number;
+  interval: number;
+  threshold: number;
+  limit: number = 10000;
+  agg: AggregationType = AggregationType.CLOSEST;
+  orderBy: DataSortOrder = DataSortOrder.DESC;
+  useStrictDataTypes: boolean;
+  reportId: string;
+}

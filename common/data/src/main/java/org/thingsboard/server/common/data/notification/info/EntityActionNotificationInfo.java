@@ -56,7 +56,8 @@ public class EntityActionNotificationInfo implements RuleOriginatedNotificationI
                 "userTitle", userTitle,
                 "userEmail", userEmail,
                 "userFirstName", userFirstName,
-                "userLastName", userLastName
+                "userLastName", userLastName,
+                "entityCustomerId", entityCustomerId.toString()
         );
     }
 

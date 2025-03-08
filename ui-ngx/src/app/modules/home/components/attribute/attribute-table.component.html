@@ -85,7 +85,7 @@
                 'attribute.selected-telemetry' : 'attribute.selected-attributes') | translate:{count: dataSource.selection.selected.length} }}
         </span>
         <span fxFlex></span>
-        <button [fxShow]="attributeScope !== attributeScopeTypes.CLIENT_SCOPE"
+        <button [fxShow]="false"
                 class="button-widget-action"
                 mat-icon-button [disabled]="isLoading$ | async"
                 matTooltip="{{ 'action.delete' | translate }}"
@@ -199,7 +199,7 @@
               <span [fxShow]="!isClientSideTelemetryTypeMap.get(attributeScope)">
                 <mat-icon>edit</mat-icon>
               </span>
-              <button mat-icon-button *ngIf="attributeScope === latestTelemetryTypes.LATEST_TELEMETRY"
+              <button mat-icon-button *ngIf="false"
                       (click)="deleteTimeseries($event, attribute)">
                 <mat-icon>delete</mat-icon>
               </button>

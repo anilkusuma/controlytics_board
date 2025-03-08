@@ -42,11 +42,11 @@
               </div>
             </div>
             <mat-form-field class="tb-appearance-transparent">
-              <mat-label translate>login.username</mat-label>
-              <input id="username-input" matInput type="email" autofocus formControlName="username" email required/>
+              <mat-label translate>login.login-id</mat-label>
+              <input id="username-input" matInput type="text" autofocus formControlName="username" required/>
               <mat-icon matPrefix>email</mat-icon>
               <mat-error *ngIf="loginFormGroup.get('username').invalid">
-                {{ 'login.invalid-email-format' | translate }}
+                {{ 'login.invalid-login-id-format' | translate }}
               </mat-error>
             </mat-form-field>
             <mat-form-field class="tb-appearance-transparent">
@@ -64,9 +64,19 @@
               <button mat-raised-button color="accent" [disabled]="(isLoading$ | async)"
                       type="submit">{{ 'login.login' | translate }}</button>
             </div>
+            <div fxLayout="row" fxLayoutAlign="center center" class="favicon-logo-container" style="margin-top: 5px;">
+              <img src="controlytics_ai.ico" alt="favicon-logo" class="favicon-logo"
+                   style="height: 24px; margin-right: 8px;">
+              <span class="favicon-text mat-typography">Optimize AI v.3.6.2</span>
+            </div>
           </div>
         </fieldset>
       </form>
     </mat-card-content>
   </mat-card>
+  <div ngClass="tb-login-version tb-powered-by-footer">
+    <section data-html2canvas-ignore [ngStyle]="{'color': '#305680'}">
+          <span>Powered by <a href="https://controlytics.ai" target="_blank">Optimize AI v.3.6.2</a></span>
+    </section>
+  </div>
 </div>

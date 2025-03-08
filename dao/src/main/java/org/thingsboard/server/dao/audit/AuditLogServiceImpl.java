@@ -23,12 +23,17 @@ import com.google.common.util.concurrent.ListenableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.thingsboard.server.common.data.*;
+import org.thingsboard.server.common.data.exception.ThingsboardErrorCode;
+import org.thingsboard.server.common.data.exception.ThingsboardException;
+import org.thingsboard.server.common.data.reports.ReportGenerationAuditLogData;
+import org.thingsboard.server.reports.pdfgen.context.AuditLogPdfGenerationContext;
+import org.thingsboard.server.reports.pdfgen.factory.PdfGeneratorFactory;
+import org.thingsboard.server.reports.pdfgen.models.PdfType;
 import org.thingsboard.common.util.JacksonUtil;
-import org.thingsboard.server.common.data.AttributeScope;
-import org.thingsboard.server.common.data.EntityType;
-import org.thingsboard.server.common.data.HasName;
-import org.thingsboard.server.common.data.StringUtils;
 import org.thingsboard.server.common.data.alarm.AlarmComment;
 import org.thingsboard.server.common.data.audit.ActionStatus;
 import org.thingsboard.server.common.data.audit.ActionType;
@@ -52,7 +57,14 @@ import org.thingsboard.server.dao.sql.JpaExecutorService;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.thingsboard.server.dao.service.Validator.validateEntityId;
@@ -64,6 +76,8 @@ import static org.thingsboard.server.dao.service.Validator.validateId;
 public class AuditLogServiceImpl implements AuditLogService {
 
     private static final String INCORRECT_TENANT_ID = "Incorrect tenantId ";
+    private static final int MAX_AUDIT_LOGS_PER_PDF = 5000;
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy & HH:mm:ss");
 
     @Autowired
     private AuditLogLevelFilter auditLogLevelFilter;
@@ -82,6 +96,9 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     @Autowired
     private DataValidator<AuditLog> auditLogValidator;
+
+    @Autowired
+    private PdfGeneratorFactory pdfGeneratorFactory;
 
     @Override
     public PageData<AuditLog> findAuditLogsByTenantIdAndCustomerId(TenantId tenantId, CustomerId customerId, List<ActionType> actionTypes, TimePageLink pageLink) {
@@ -112,6 +129,30 @@ public class AuditLogServiceImpl implements AuditLogService {
         log.trace("Executing findAuditLogs [{}]", pageLink);
         validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
         return auditLogDao.findAuditLogsByTenantId(tenantId.getId(), actionTypes, pageLink);
+    }
+
+    @Override
+    public byte[] getAuditLogAsPdf(TenantId tenantId, User currentUser,
+                                   List<ActionType> actionTypes,
+                                   TimePageLink pageLink,
+                                   final String remarks) {
+        log.trace("Executing getAuditLogAsPdf [{}]", pageLink);
+        validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
+        PageData<AuditLog> pageData = auditLogDao.findAuditLogsByTenantId(tenantId.getId(), actionTypes,
+                pageLink);
+        final List<AuditLog> auditLogs = new ArrayList<>(pageData.getData());
+        while (pageData.hasNext() || auditLogs.size() > MAX_AUDIT_LOGS_PER_PDF) {
+            pageData = auditLogDao.findAuditLogsByTenantId(tenantId.getId(), actionTypes, pageLink.nextPageLink());
+            auditLogs.addAll(pageData.getData());
+        }
+        return pdfGeneratorFactory.getGenerator(PdfType.AUDIT_LOGS_REPORT).generatePdf(UUID.randomUUID().toString(),
+                AuditLogPdfGenerationContext.builder()
+                        .tenantId(tenantId)
+                        .userName(currentUser.getName())
+                        .startTime(pageLink.getStartTime())
+                        .endTime(pageLink.getEndTime())
+                        .auditLogs(auditLogs)
+                        .build());
     }
 
     @Override
@@ -202,14 +243,35 @@ public class AuditLogServiceImpl implements AuditLogService {
             case ATTRIBUTES_UPDATED:
                 actionData.put("entityId", entityId.toString());
                 AttributeScope scope = extractParameter(AttributeScope.class, 0, additionalInfo);
+
                 @SuppressWarnings("unchecked")
                 List<AttributeKvEntry> attributes = extractParameter(List.class, 1, additionalInfo);
+
+                @SuppressWarnings("unchecked")
+                Map<AttributeKvEntry, AttributeKvEntry> attributeMap = extractParameter(Map.class, 1, additionalInfo);
+
+                String remarks = extractParameter(String.class, 2, additionalInfo);
+
                 actionData.put("scope", scope.name());
                 ObjectNode attrsNode = JacksonUtil.newObjectNode();
-                if (attributes != null) {
+                if (attributeMap != null) {
+                    attributeMap.forEach((k, v) -> {
+                        attrsNode.putIfAbsent(k.getKey(), JacksonUtil.newObjectNode());
+                        ObjectNode attrNode = (ObjectNode) attrsNode.get(k.getKey());
+                        attrNode.put("new_value", k.getValueAsString());
+                        if (v != null) {
+                            attrNode.put("old_value", v.getValueAsString());
+                        }
+                    });
+                } else if (attributes != null) {
                     for (AttributeKvEntry attr : attributes) {
-                        attrsNode.put(attr.getKey(), attr.getValueAsString());
+                        attrsNode.putIfAbsent(attr.getKey(), JacksonUtil.newObjectNode());
+                        ObjectNode attrNode = (ObjectNode) attrsNode.get(attr.getKey());
+                        attrNode.put("new_value", attr.getValueAsString());
                     }
+                }
+                if (StringUtils.hasText(remarks)) {
+                    actionData.put("remarks", remarks);
                 }
                 actionData.set("attributes", attrsNode);
                 break;
@@ -331,6 +393,17 @@ public class AuditLogServiceImpl implements AuditLogService {
                 String number = extractParameter(String.class, 0, additionalInfo);
                 actionData.put("recipientNumber", number);
                 break;
+            case REPORT_GENERATED:
+                final ReportGenerationAuditLogData data = extractParameter(ReportGenerationAuditLogData.class,
+                        0, additionalInfo);
+                if (data != null) {
+                    actionData.put("reportId", data.getReportId());
+                    actionData.put("reportName", data.getReportName());
+                    actionData.put("startTime", getFormattedTime(data.getStartTimeInMs()));
+                    actionData.put("endTime", getFormattedTime(data.getEndTimeInMs()));
+                    actionData.put("startTimeInMs", data.getStartTimeInMs());
+                    actionData.put("endTimeInMs", data.getEndTimeInMs());
+                }
         }
         return actionData;
     }
@@ -412,6 +485,14 @@ public class AuditLogServiceImpl implements AuditLogService {
             auditLogSink.logAction(auditLog);
             return null;
         });
+    }
+
+    private String getFormattedTime(final long time) {
+        if (time == 0 || time == Long.MAX_VALUE) {
+            return "";
+        }
+        final LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), ZoneId.systemDefault());
+        return dateTime.format(formatter);
     }
 
 }

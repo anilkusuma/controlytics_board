@@ -108,12 +108,9 @@ public abstract class DataValidator<D extends BaseData<?>> {
     }
 
     public static boolean doValidateEmail(String email) {
-        if (email == null) {
-            return false;
-        }
-
-        Matcher emailMatcher = EMAIL_PATTERN.matcher(email);
-        return emailMatcher.matches();
+        return email != null;
+//        Matcher emailMatcher = EMAIL_PATTERN.matcher(email);
+//        return emailMatcher.matches();
     }
 
     protected void validateNumberOfEntitiesPerTenant(TenantId tenantId,

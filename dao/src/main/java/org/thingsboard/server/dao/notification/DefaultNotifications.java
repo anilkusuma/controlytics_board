@@ -274,6 +274,23 @@ public class DefaultNotifications {
                     .description("Send notification to tenant admins when any device changes its activity state")
                     .build())
             .build();
+
+    public static final DefaultNotification requestResetPasswordActivity = DefaultNotification.builder()
+            .name("Request reset password activity notification")
+            .type(NotificationType.ENTITY_ACTION)
+            .subject("${userEmail} requested to reset password")
+            .text("User '${userEmail}' forgot password and requested to reset it.")
+            .icon("warning").color(YELLOW_COLOR)
+            .rule(DefaultRule.builder()
+                    .name("Request reset password activity")
+                    .triggerConfig(EntityActionNotificationRuleTriggerConfig.builder()
+                            .entityTypes(Set.of(EntityType.USER, EntityType.CUSTOMER))
+                            .resetPasswordRequested(true)
+                            .build())
+                    .description("Send notification to tenant admins when a user triggers a reset password request.")
+                    .build())
+            .build();
+
     public static final DefaultNotification alarmComment = DefaultNotification.builder()
             .name("Alarm comment notification")
             .type(NotificationType.ALARM_COMMENT)

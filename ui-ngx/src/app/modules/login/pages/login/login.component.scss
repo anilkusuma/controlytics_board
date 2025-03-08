@@ -83,6 +83,25 @@
         }
       }
     }
+
+    .tb-powered-by-footer {
+      position: absolute;
+      right: 25px;
+      bottom: 5px;
+      z-index: 30;
+      pointer-events: none;
+
+      span {
+        font-size: 12px;
+
+        a {
+          font-weight: 700;
+          text-decoration: none;
+          pointer-events: all;
+          border: none;
+        }
+      }
+    }
   }
 }
 

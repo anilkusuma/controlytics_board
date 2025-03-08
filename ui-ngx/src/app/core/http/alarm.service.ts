@@ -14,12 +14,12 @@
 /// limitations under the License.
 ///
 
-import { Injectable } from '@angular/core';
-import { defaultHttpOptionsFromConfig, RequestConfig } from './http-utils';
-import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
-import { PageData } from '@shared/models/page/page-data';
-import { EntityId } from '@shared/models/id/entity-id';
+import {Injectable} from '@angular/core';
+import {defaultHttpOptionsFromConfig, RequestConfig} from './http-utils';
+import {Observable} from 'rxjs';
+import {HttpClient} from '@angular/common/http';
+import {PageData} from '@shared/models/page/page-data';
+import {EntityId} from '@shared/models/id/entity-id';
 import {
   Alarm,
   AlarmInfo,
@@ -28,8 +28,8 @@ import {
   AlarmSeverity,
   AlarmStatus
 } from '@shared/models/alarm.models';
-import { EntitySubtype } from '@shared/models/entity-type.models';
-import { PageLink } from '@shared/models/page/page-link';
+import {EntitySubtype} from '@shared/models/entity-type.models';
+import {PageLink} from '@shared/models/page/page-link';
 
 @Injectable({
   providedIn: 'root'
@@ -38,7 +38,8 @@ export class AlarmService {
 
   constructor(
     private http: HttpClient
-  ) { }
+  ) {
+  }
 
   public getAlarm(alarmId: string, config?: RequestConfig): Observable<Alarm> {
     return this.http.get<Alarm>(`/api/alarm/${alarmId}`, defaultHttpOptionsFromConfig(config));
@@ -84,6 +85,29 @@ export class AlarmService {
       defaultHttpOptionsFromConfig(config));
   }
 
+  public downloadAlarmsPdfReport(query: AlarmQueryV2,
+                                 reportId: string,
+                                 config?: RequestConfig): Observable<Blob> {
+    const options = {
+      ...defaultHttpOptionsFromConfig(config),
+      responseType: 'blob' as 'json'
+    };
+    let url = `/api/reports/alarm/pdf/${query.affectedEntityId.entityType}/${query.affectedEntityId.id}?reportId=${reportId}`;
+    if (query.pageLink && query.pageLink.startTime) {
+      url += `&startTime=${query.pageLink.startTime}`;
+    }
+    if (query.pageLink && query.pageLink.endTime) {
+      url += `&endTime=${query.pageLink.endTime}`;
+    }
+    if (query.typeList && query.typeList.length) {
+      url += `&typeList=${query.typeList.map(type => encodeURIComponent(type)).join(',')}`;
+    }
+    if (query.statusList && query.statusList.length) {
+      url += `&statusList=${query.statusList.join(',')}`;
+    }
+    return this.http.get<Blob>(url, options);
+  }
+
   public getAllAlarms(query: AlarmQuery,
                       config?: RequestConfig): Observable<PageData<AlarmInfo>> {
     return this.http.get<PageData<AlarmInfo>>(`/api/alarms${query.toQuery()}`,
@@ -91,9 +115,9 @@ export class AlarmService {
   }
 
   public getAllAlarmsV2(query: AlarmQueryV2,
-      config?: RequestConfig): Observable<PageData<AlarmInfo>> {
-      return this.http.get<PageData<AlarmInfo>>(`/api/v2/alarms${query.toQuery()}`,
-        defaultHttpOptionsFromConfig(config));
+                        config?: RequestConfig): Observable<PageData<AlarmInfo>> {
+    return this.http.get<PageData<AlarmInfo>>(`/api/v2/alarms${query.toQuery()}`,
+      defaultHttpOptionsFromConfig(config));
   }
 
   public getHighestAlarmSeverity(entityId: EntityId, alarmSearchStatus: AlarmSearchStatus, alarmStatus: AlarmStatus,

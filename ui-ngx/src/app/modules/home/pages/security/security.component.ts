@@ -52,6 +52,7 @@ import { isDefinedAndNotNull, isEqual } from '@core/utils';
 import { AuthService } from '@core/auth/auth.service';
 import { UserPasswordPolicy } from '@shared/models/settings.models';
 import { MatCheckboxChange } from '@angular/material/checkbox';
+import {Authority} from "@shared/models/authority.enum";
 
 @Component({
   selector: 'tb-security',
@@ -384,4 +385,6 @@ export class SecurityComponent extends PageComponent implements OnInit, OnDestro
       newPassword2: ''
     });
   }
+
+    protected readonly authority = Authority;
 }

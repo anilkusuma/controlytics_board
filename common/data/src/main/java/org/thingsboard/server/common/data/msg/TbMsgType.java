@@ -36,6 +36,7 @@ public enum TbMsgType {
     ENTITY_DELETED("Entity Deleted"),
     ENTITY_ASSIGNED("Entity Assigned"),
     ENTITY_UNASSIGNED("Entity Unassigned"),
+    ENTITY_REQUEST_RESET_PASSWORD("Entity Request Reset Password"),
     ATTRIBUTES_UPDATED("Attributes Updated"),
     ATTRIBUTES_DELETED("Attributes Deleted"),
     ALARM,
@@ -67,6 +68,7 @@ public enum TbMsgType {
     PROVISION_SUCCESS,
     PROVISION_FAILURE,
     SEND_EMAIL,
+    REPORT_GENERATED,
 
     // tellSelfOnly types
     GENERATOR_NODE_SELF_MSG(null, true),

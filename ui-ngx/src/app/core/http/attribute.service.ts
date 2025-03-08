@@ -14,14 +14,20 @@
 /// limitations under the License.
 ///
 
-import { Injectable } from '@angular/core';
-import { defaultHttpOptionsFromConfig, RequestConfig } from './http-utils';
-import { forkJoin, Observable, of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
-import { EntityId } from '@shared/models/id/entity-id';
-import { AttributeData, AttributeScope, DataSortOrder, TimeseriesData } from '@shared/models/telemetry/telemetry.models';
-import { isDefinedAndNotNull } from '@core/utils';
-import { AggregationType } from '@shared/models/time/time.models';
+import {Injectable} from '@angular/core';
+import {defaultHttpOptionsFromConfig, RequestConfig} from './http-utils';
+import {forkJoin, Observable, of} from 'rxjs';
+import {HttpClient} from '@angular/common/http';
+import {EntityId} from '@shared/models/id/entity-id';
+import {
+  AttributeData,
+  AttributeScope,
+  DataSortOrder,
+  DownloadEntityTimeseriesPdfReportRequest,
+  TimeseriesData
+} from '@shared/models/telemetry/telemetry.models';
+import {isDefinedAndNotNull} from '@core/utils';
+import {AggregationType} from '@shared/models/time/time.models';
 
 @Injectable({
   providedIn: 'root'
@@ -48,10 +54,11 @@ export class AttributeService {
   }
 
   public deleteEntityAttributes(entityId: EntityId, attributeScope: AttributeScope, attributes: Array<AttributeData>,
+                                remarks?: string,
                                 config?: RequestConfig): Observable<any> {
     const keys = attributes.map(attribute => encodeURIComponent(attribute.key)).join(',');
     return this.http.delete(`/api/plugins/telemetry/${entityId.entityType}/${entityId.id}/${attributeScope}` +
-      `?keys=${keys}`,
+      `?keys=${keys}&remarks=${remarks}`,
       defaultHttpOptionsFromConfig(config));
   }
 
@@ -79,8 +86,9 @@ export class AttributeService {
   }
 
   public saveEntityAttributes(entityId: EntityId, attributeScope: AttributeScope, attributes: Array<AttributeData>,
-                              config?: RequestConfig): Observable<any> {
-    const attributesData: {[key: string]: any} = {};
+                              config?: RequestConfig,
+                              remarks?: string): Observable<any> {
+    const attributesData: { [key: string]: any } = {};
     const deleteAttributes: AttributeData[] = [];
     attributes.forEach((attribute) => {
       if (isDefinedAndNotNull(attribute.value)) {
@@ -91,12 +99,13 @@ export class AttributeService {
     });
     let deleteEntityAttributesObservable: Observable<any>;
     if (deleteAttributes.length) {
-      deleteEntityAttributesObservable = this.deleteEntityAttributes(entityId, attributeScope, deleteAttributes, config);
+      deleteEntityAttributesObservable = this.deleteEntityAttributes(entityId, attributeScope, deleteAttributes, remarks, config);
     } else {
       deleteEntityAttributesObservable = of(null);
     }
     let saveEntityAttributesObservable: Observable<any>;
     if (Object.keys(attributesData).length) {
+      attributesData.remarks = remarks;
       saveEntityAttributesObservable = this.http.post(`/api/plugins/telemetry/${entityId.entityType}/${entityId.id}/${attributeScope}`,
         attributesData, defaultHttpOptionsFromConfig(config));
     } else {
@@ -107,7 +116,7 @@ export class AttributeService {
 
   public saveEntityTimeseries(entityId: EntityId, timeseriesScope: string, timeseries: Array<AttributeData>,
                               config?: RequestConfig): Observable<any> {
-    const timeseriesData: {[key: string]: any} = {};
+    const timeseriesData: { [key: string]: any } = {};
     const deleteTimeseries: AttributeData[] = [];
     timeseries.forEach((attribute) => {
       if (isDefinedAndNotNull(attribute.value)) {
@@ -127,7 +136,7 @@ export class AttributeService {
     if (Object.keys(timeseriesData).length) {
       saveEntityTimeseriesObservable =
         this.http.post(`/api/plugins/telemetry/${entityId.entityType}/${entityId.id}/timeseries/${timeseriesScope}`,
-        timeseriesData, defaultHttpOptionsFromConfig(config));
+          timeseriesData, defaultHttpOptionsFromConfig(config));
     } else {
       saveEntityTimeseriesObservable = of(null);
     }
@@ -156,6 +165,38 @@ export class AttributeService {
     }
 
     return this.http.get<TimeseriesData>(url, defaultHttpOptionsFromConfig(config));
+  }
+
+  public downloadEntityTimeseriesPdfReport(request: DownloadEntityTimeseriesPdfReportRequest,
+                                           config?: RequestConfig): Observable<Blob> {
+    let url = `/api/reports/${request.entityId.entityType}/${request.entityId.id}/values/timeseries/pdf?keys=${request.keys.join(',')}&startTs=${request.startTs}&endTs=${request.endTs}`;
+    if (isDefinedAndNotNull(request.limit)) {
+      url += `&limit=${request.limit}`;
+    }
+    if (isDefinedAndNotNull(request.agg)) {
+      url += `&agg=${request.agg}`;
+    }
+    if (isDefinedAndNotNull(request.interval)) {
+      url += `&interval=${request.interval}`;
+    }
+    if (isDefinedAndNotNull(request.orderBy)) {
+      url += `&orderBy=${request.orderBy}`;
+    }
+    if (isDefinedAndNotNull(request.useStrictDataTypes)) {
+      url += `&useStrictDataTypes=${request.useStrictDataTypes}`;
+    }
+    if (isDefinedAndNotNull(request.reportId)) {
+      url += `&reportId=${request.reportId}`;
+    }
+    if (isDefinedAndNotNull(request.threshold)) {
+      url += `&threshold=${request.threshold}`;
+    }
+    const options = {
+      ...defaultHttpOptionsFromConfig(config),
+      responseType: 'blob' as 'json'
+    };
+
+    return this.http.get<Blob>(url, options);
   }
 
   public getEntityTimeseriesLatest(entityId: EntityId, keys?: Array<string>,

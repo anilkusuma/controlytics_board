@@ -513,6 +513,18 @@ public class UserServiceImpl extends AbstractCachedEntityService<UserCacheKey, U
         return failedLoginAttempts;
     }
 
+    private Map<String, String> getUserPasswordHistory(final UserCredentials userCredentials) {
+        final JsonNode additionalInfo = userCredentials.getAdditionalInfo();
+        if (additionalInfo instanceof ObjectNode) {
+            JsonNode userPasswordHistoryJson = additionalInfo.get(USER_PASSWORD_HISTORY);
+            if (userPasswordHistoryJson != null) {
+                return JacksonUtil.convertValue(userPasswordHistoryJson, new TypeReference<>() {
+                });
+            }
+        }
+        return Collections.emptyMap();
+    }
+
     private void updatePasswordHistory(UserCredentials userCredentials) {
         JsonNode additionalInfo = userCredentials.getAdditionalInfo();
         if (!(additionalInfo instanceof ObjectNode)) {

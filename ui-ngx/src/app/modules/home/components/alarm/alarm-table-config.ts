@@ -127,24 +127,24 @@ export class AlarmTableConfig extends EntityTableConfig<AlarmInfo, TimePageLink>
           fontWeight: 'bold',
           color: alarmSeverityColors.get(entity.severity)
         })));
-    this.columns.push(
-      new EntityTableColumn<AlarmInfo>('assignee', 'alarm.assignee', '240px',
-        (entity) => {
-          return this.getAssigneeTemplate(entity)
-        },
-        () => ({}),
-        false,
-        () => ({}),
-        (entity) => undefined,
-        false,
-        {
-          icon: 'keyboard_arrow_down',
-          type: CellActionDescriptorType.DEFAULT,
-          isEnabled: (entity) => true,
-          name: this.translate.instant('alarm.assign'),
-          onAction: ($event, entity) => this.openAlarmAssigneePanel($event, entity)
-        })
-    )
+    // this.columns.push(
+    //   new EntityTableColumn<AlarmInfo>('assignee', 'alarm.assignee', '240px',
+    //     (entity) => {
+    //       return this.getAssigneeTemplate(entity)
+    //     },
+    //     () => ({}),
+    //     false,
+    //     () => ({}),
+    //     (entity) => undefined,
+    //     false,
+    //     {
+    //       icon: 'keyboard_arrow_down',
+    //       type: CellActionDescriptorType.DEFAULT,
+    //       isEnabled: (entity) => true,
+    //       name: this.translate.instant('alarm.assign'),
+    //       onAction: ($event, entity) => this.openAlarmAssigneePanel($event, entity)
+    //     })
+    // )
     this.columns.push(
       new EntityTableColumn<AlarmInfo>('status', 'alarm.status', '25%',
         (entity) => this.translate.instant(alarmStatusTranslations.get(entity.status))));
@@ -174,7 +174,7 @@ export class AlarmTableConfig extends EntityTableConfig<AlarmInfo, TimePageLink>
       {
         name: this.translate.instant('alarm.delete'),
         icon: 'delete',
-        isEnabled: true,
+        isEnabled: false,
         onAction: ($event, entities) => this.deleteAlarms($event, entities)
       }
     )

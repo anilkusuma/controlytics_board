@@ -311,10 +311,11 @@ const routes: Routes = [
       }
     ]
   },
+  ...auditLogsRoutes,
   {
     path: 'security-settings',
     data: {
-      auth: [Authority.SYS_ADMIN, Authority.TENANT_ADMIN],
+      auth: [Authority.SYS_ADMIN],
       breadcrumb: {
         label: 'security.security',
         icon: 'security'
@@ -325,10 +326,9 @@ const routes: Routes = [
         path: '',
         children: [],
         data: {
-          auth: [Authority.SYS_ADMIN, Authority.TENANT_ADMIN],
+          auth: [Authority.SYS_ADMIN],
           redirectTo: {
-            SYS_ADMIN: '/security-settings/general',
-            TENANT_ADMIN: '/security-settings/auditLogs'
+            SYS_ADMIN: '/security-settings/general'
           }
         }
       },
@@ -373,8 +373,7 @@ const routes: Routes = [
         resolve: {
           loginProcessingUrl: OAuth2LoginProcessingUrlResolver
         }
-      },
-      ...auditLogsRoutes
+      }
     ]
   }
 ];

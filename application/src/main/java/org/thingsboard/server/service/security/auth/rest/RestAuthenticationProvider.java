@@ -17,6 +17,7 @@ package org.thingsboard.server.service.security.auth.rest;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -44,11 +45,16 @@ import org.thingsboard.server.dao.user.UserService;
 import org.thingsboard.server.queue.util.TbCoreComponent;
 import org.thingsboard.server.service.security.auth.MfaAuthenticationToken;
 import org.thingsboard.server.service.security.auth.mfa.TwoFactorAuthService;
+import org.thingsboard.server.service.security.exception.ResetPasswordException;
 import org.thingsboard.server.service.security.exception.UserPasswordNotValidException;
 import org.thingsboard.server.service.security.model.SecurityUser;
 import org.thingsboard.server.service.security.model.UserPrincipal;
 import org.thingsboard.server.service.security.system.SystemSecurityService;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.UUID;
 
 
@@ -125,6 +131,16 @@ public class RestAuthenticationProvider implements AuthenticationProvider {
                 throw new UsernameNotFoundException("User credentials not found");
             }
 
+            final UserCredentials userCredentialsByResetToken =
+                    userService.findUserCredentialsByResetToken(TenantId.SYS_TENANT_ID,
+                    password);
+            if (userCredentialsByResetToken != null
+                    && userCredentialsByResetToken.getUserId().equals(user.getId())) {
+                throw new ResetPasswordException("User password reset is required", password,
+                        "/login/resetPassword?resetToken="+ password + "&userId=" +  Base64.getEncoder()
+                                .encodeToString(user.getEmail().getBytes()));
+            }
+
             try {
                 systemSecurityService.validateUserCredentials(user.getTenantId(), userCredentials, username, password);
             } catch (LockedException e) {
@@ -136,6 +152,8 @@ public class RestAuthenticationProvider implements AuthenticationProvider {
                 throw new InsufficientAuthenticationException("User has no authority assigned");
 
             return new SecurityUser(user, userCredentials.isEnabled(), userPrincipal);
+        } catch (ResetPasswordException e) {
+            throw e;
         } catch (Exception e) {
             systemSecurityService.logLoginAction(user, authentication.getDetails(), ActionType.LOGIN, e);
             throw e;

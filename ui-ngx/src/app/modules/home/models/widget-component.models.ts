@@ -104,6 +104,7 @@ import { UserSettingsService } from '@core/http/user-settings.service';
 import { DynamicComponentModule } from '@core/services/dynamic-component-factory.service';
 import { DataKeySettingsFunction } from '@home/components/widget/config/data-keys.component.models';
 import { UtilsService } from '@core/services/utils.service';
+import {AlarmService} from "@core/http/alarm.service";
 
 export interface IWidgetAction {
   name: string;
@@ -183,6 +184,7 @@ export class WidgetContext {
   authService: AuthService;
   deviceService: DeviceService;
   assetService: AssetService;
+  alarmService: AlarmService;
   entityViewService: EntityViewService;
   edgeService: EdgeService;
   customerService: CustomerService;

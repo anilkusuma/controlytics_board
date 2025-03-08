@@ -51,7 +51,8 @@ export class UpdateMultipleAttributesWidgetSettingsComponent extends WidgetSetti
       fieldsAlignment: 'row',
       fieldsInRow: 2,
       rowGap: 5,
-      columnGap: 10
+      columnGap: 10,
+      remarksDropdownList: '',
     };
   }
 
@@ -83,7 +84,11 @@ export class UpdateMultipleAttributesWidgetSettingsComponent extends WidgetSetti
       // Layout gap
 
       rowGap: [settings.rowGap, [Validators.min(0)]],
-      columnGap: [settings.columnGap, [Validators.min(0)]]
+      columnGap: [settings.columnGap, [Validators.min(0)]],
+
+      // Custom
+      remarksDropdownList: [settings.remarksDropdownList, []]
+
     });
   }
 

@@ -121,6 +121,10 @@ export class AuthService {
       ));
   }
 
+  public relogin(loginRequest: LoginRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>('/api/auth/login', loginRequest, defaultHttpOptions());
+  }
+
   public checkTwoFaVerificationCode(providerType: TwoFactorAuthProviderType, verificationCode: number): Observable<LoginResponse> {
     return this.http.post<LoginResponse>
     (`/api/auth/2fa/verification/check?providerType=${providerType}&verificationCode=${verificationCode}`,

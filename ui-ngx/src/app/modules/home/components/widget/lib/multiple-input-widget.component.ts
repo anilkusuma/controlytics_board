@@ -49,6 +49,11 @@ import {
 import { MatDialog } from '@angular/material/dialog';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatFormFieldAppearance, SubscriptSizing } from '@angular/material/form-field';
+import {
+  ReloginDialogComponent,
+  ReLoginDialogComponentData,
+  ReLoginDialogComponentResponse
+} from "@home/dialogs/re-login/relogin-dialog.component";
 
 type FieldAlignment = 'row' | 'column';
 
@@ -75,6 +80,7 @@ interface MultipleInputWidgetSettings {
   columnGap: number;
   rowGap: number;
   attributesShared?: boolean;
+  remarksDropdownList?: string;
 }
 
 interface MultipleInputWidgetSelectOption {
@@ -182,6 +188,7 @@ export class MultipleInputWidgetComponent extends PageComponent implements OnIni
   ngOnInit(): void {
     this.ctx.$scope.multipleInputWidget = this;
     this.settings = this.ctx.settings;
+    console.log('MultipleInputWidgetComponent.settings', this.settings);
     this.widgetConfig = this.ctx.widgetConfig;
     this.subscription = this.ctx.defaultSubscription;
     this.datasources = this.subscription.datasources;
@@ -238,6 +245,10 @@ export class MultipleInputWidgetComponent extends PageComponent implements OnIni
     }
     if (isUndefined(this.settings.rowGap)) {
       this.settings.rowGap = 5;
+    }
+
+    if (isUndefined(this.settings.remarksDropdownList)) {
+      this.settings.remarksDropdownList = '';
     }
 
     this.updateColumns();
@@ -624,11 +635,26 @@ export class MultipleInputWidgetComponent extends PageComponent implements OnIni
 
   public saveForm() {
     if (this.settings.showActionButtons) {
-      this.save();
+      let remarksDropDownValues: string[];
+      if (this.settings.remarksDropdownList !== undefined && this.settings.remarksDropdownList.split(',').length > 0) {
+        remarksDropDownValues = this.settings.remarksDropdownList.split(',');
+      }
+      this.ctx.dialogs.relogin(<ReLoginDialogComponentData> {
+        remarksRequired: true,
+        intervalRequired: false,
+        timeRangeRequired: false,
+        remarksDropDownValues: remarksDropDownValues ?? []
+      }).subscribe(
+        (result) => {
+          if (result.reloginStatus) {
+            this.save(undefined, result.remarks);
+          }
+        }
+      );
     }
   }
 
-  private save(dataToSave?: MultipleInputWidgetSource) {
+  private save(dataToSave?: MultipleInputWidgetSource, remarks?: string) {
     if (document?.activeElement && !this.isSavingInProgress) {
       this.isSavingInProgress = true;
       (document.activeElement as HTMLElement).blur();
@@ -696,7 +722,8 @@ export class MultipleInputWidgetComponent extends PageComponent implements OnIni
           entityId,
           AttributeScope.SERVER_SCOPE,
           serverAttributes,
-          config
+          config,
+          remarks,
         ));
       }
       if (sharedAttributes.length) {
@@ -704,7 +731,8 @@ export class MultipleInputWidgetComponent extends PageComponent implements OnIni
           entityId,
           AttributeScope.SHARED_SCOPE,
           sharedAttributes,
-          config
+          config,
+          remarks,
         ));
       }
       if (telemetry.length) {

@@ -77,6 +77,11 @@ export class UserService {
       {...{responseType: 'text'}, ...defaultHttpOptionsFromConfig(config)});
   }
 
+  public getResetPasswordLink(userId: string, config?: RequestConfig): Observable<string> {
+    return this.http.get(`/api/user/${userId}/resetPasswordLink`,
+      {...{responseType: 'text'}, ...defaultHttpOptionsFromConfig(config)});
+  }
+
   public sendActivationEmail(email: string, config?: RequestConfig) {
     const encodeEmail = encodeURIComponent(email);
     return this.http.post(`/api/user/sendActivationMail?email=${encodeEmail}`, null, defaultHttpOptionsFromConfig(config));

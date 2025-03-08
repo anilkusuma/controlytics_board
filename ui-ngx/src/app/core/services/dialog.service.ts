@@ -36,6 +36,11 @@ import {
   ErrorAlertDialogData
 } from '@shared/components/dialog/error-alert-dialog.component';
 import { TodoDialogComponent } from '@shared/components/dialog/todo-dialog.component';
+import {
+  ReloginDialogComponent,
+  ReLoginDialogComponentData,
+  ReLoginDialogComponentResponse
+} from "@home/dialogs/re-login/relogin-dialog.component";
 
 @Injectable({
   providedIn: 'root'
@@ -158,4 +163,11 @@ export class DialogService {
     return dialogRef.afterClosed();
   }
 
+  relogin(data?: ReLoginDialogComponentData): Observable<any> {
+    return this.dialog.open<ReloginDialogComponent, ReLoginDialogComponentData, ReLoginDialogComponentResponse>(ReloginDialogComponent, {
+      disableClose: true,
+      panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
+      data: data
+    }).afterClosed();
+  }
 }

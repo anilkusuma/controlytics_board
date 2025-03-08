@@ -14,14 +14,14 @@
 /// limitations under the License.
 ///
 
-import { Injectable } from '@angular/core';
-import { defaultHttpOptionsFromConfig, RequestConfig } from './http-utils';
-import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
-import { TimePageLink } from '@shared/models/page/page-link';
-import { PageData } from '@shared/models/page/page-data';
-import { AuditLog } from '@shared/models/audit-log.models';
-import { EntityId } from '@shared/models/id/entity-id';
+import {Injectable} from '@angular/core';
+import {defaultHttpOptionsFromConfig, RequestConfig} from './http-utils';
+import {Observable} from 'rxjs';
+import {HttpClient} from '@angular/common/http';
+import {PageLink, TimePageLink} from '@shared/models/page/page-link';
+import {PageData} from '@shared/models/page/page-data';
+import {AuditLog} from '@shared/models/audit-log.models';
+import {EntityId} from '@shared/models/id/entity-id';
 
 @Injectable({
   providedIn: 'root'
@@ -56,4 +56,13 @@ export class AuditLogService {
       defaultHttpOptionsFromConfig(config));
   }
 
+  public getAuditLogsPdf(pageLink: PageLink,
+                         remarks: string,
+                         config?: RequestConfig): Observable<Blob> {
+    const options = {
+      ...defaultHttpOptionsFromConfig(config),
+      responseType: 'blob' as 'json'
+    };
+    return this.http.get<Blob>(`/api/audit/logs/pdf${pageLink.toQuery()}&remarks=${remarks}`, options);
+  }
 }

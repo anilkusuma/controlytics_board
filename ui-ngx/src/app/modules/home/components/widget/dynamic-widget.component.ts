@@ -50,6 +50,7 @@ import { MillisecondsToTimeStringPipe } from '@shared/pipe/milliseconds-to-time-
 import { UserSettingsService } from '@core/http/user-settings.service';
 import { ImagePipe } from '@shared/pipe/image.pipe';
 import { UtilsService } from '@core/services/utils.service';
+import {AlarmService} from "@core/http/alarm.service";
 
 @Directive()
 // eslint-disable-next-line @angular-eslint/directive-class-suffix
@@ -75,6 +76,7 @@ export class DynamicWidgetComponent extends PageComponent implements IDynamicWid
     this.ctx.$injector = $injector;
     this.ctx.deviceService = $injector.get(DeviceService);
     this.ctx.assetService = $injector.get(AssetService);
+    this.ctx.alarmService = $injector.get(AlarmService);
     this.ctx.entityViewService = $injector.get(EntityViewService);
     this.ctx.customerService = $injector.get(CustomerService);
     this.ctx.dashboardService = $injector.get(DashboardService);

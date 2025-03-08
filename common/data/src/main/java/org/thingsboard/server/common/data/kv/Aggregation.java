@@ -20,6 +20,6 @@ package org.thingsboard.server.common.data.kv;
  */
 public enum Aggregation {
 
-    MIN, MAX, AVG, SUM, COUNT, NONE;
+    MIN, MAX, AVG, SUM, COUNT, CLOSEST, NONE;
 
 }

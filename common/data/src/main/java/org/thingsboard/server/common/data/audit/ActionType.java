@@ -30,6 +30,7 @@ public enum ActionType {
     TIMESERIES_UPDATED(false, TbMsgType.TIMESERIES_UPDATED), // log timeseries update
     TIMESERIES_DELETED(false, TbMsgType.TIMESERIES_DELETED), // log timeseries
     RPC_CALL(false, null), // log method and params
+    CREDENTIALS_RESET_REQUEST(false, TbMsgType.ENTITY_UPDATED),
     CREDENTIALS_UPDATED(false, null), // log new credentials
     ASSIGNED_TO_CUSTOMER(false, TbMsgType.ENTITY_ASSIGNED), // log customer name
     UNASSIGNED_FROM_CUSTOMER(false, TbMsgType.ENTITY_UNASSIGNED), // log customer name
@@ -57,7 +58,8 @@ public enum ActionType {
     ADDED_COMMENT(false, TbMsgType.COMMENT_CREATED),
     UPDATED_COMMENT(false, TbMsgType.COMMENT_UPDATED),
     DELETED_COMMENT(false, null),
-    SMS_SENT(false, null);
+    SMS_SENT(false, null),
+    REPORT_GENERATED(false, TbMsgType.REPORT_GENERATED);
 
     @Getter
     private final boolean isRead;

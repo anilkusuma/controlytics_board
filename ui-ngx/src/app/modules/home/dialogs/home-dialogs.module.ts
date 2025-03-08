@@ -21,13 +21,15 @@ import { AssignToCustomerDialogComponent } from '@modules/home/dialogs/assign-to
 import { AddEntitiesToCustomerDialogComponent } from '@modules/home/dialogs/add-entities-to-customer-dialog.component';
 import { HomeDialogsService } from './home-dialogs.service';
 import { AddEntitiesToEdgeDialogComponent } from '@home/dialogs/add-entities-to-edge-dialog.component';
+import {ReloginDialogComponent} from "@home/dialogs/re-login/relogin-dialog.component";
 
 @NgModule({
   declarations:
   [
     AssignToCustomerDialogComponent,
     AddEntitiesToCustomerDialogComponent,
-    AddEntitiesToEdgeDialogComponent
+    AddEntitiesToEdgeDialogComponent,
+    ReloginDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -36,7 +38,8 @@ import { AddEntitiesToEdgeDialogComponent } from '@home/dialogs/add-entities-to-
   exports: [
     AssignToCustomerDialogComponent,
     AddEntitiesToCustomerDialogComponent,
-    AddEntitiesToEdgeDialogComponent
+    AddEntitiesToEdgeDialogComponent,
+    ReloginDialogComponent,
   ],
   providers: [
     HomeDialogsService

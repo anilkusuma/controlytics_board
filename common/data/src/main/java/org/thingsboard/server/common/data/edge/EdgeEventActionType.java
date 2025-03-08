@@ -17,6 +17,7 @@ package org.thingsboard.server.common.data.edge;
 
 import lombok.Getter;
 import org.thingsboard.server.common.data.audit.ActionType;
+import org.thingsboard.server.common.data.msg.TbMsgType;
 
 @Getter
 public enum EdgeEventActionType {
@@ -27,6 +28,7 @@ public enum EdgeEventActionType {
     ATTRIBUTES_UPDATED(ActionType.ATTRIBUTES_UPDATED),
     ATTRIBUTES_DELETED(ActionType.ATTRIBUTES_DELETED),
     TIMESERIES_UPDATED(ActionType.TIMESERIES_UPDATED),
+    CREDENTIALS_RESET_REQUEST(ActionType.CREDENTIALS_RESET_REQUEST),
     CREDENTIALS_UPDATED(ActionType.CREDENTIALS_UPDATED),
     ASSIGNED_TO_CUSTOMER(ActionType.ASSIGNED_TO_CUSTOMER),
     UNASSIGNED_FROM_CUSTOMER(ActionType.UNASSIGNED_FROM_CUSTOMER),

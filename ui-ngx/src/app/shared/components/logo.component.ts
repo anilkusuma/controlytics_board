@@ -23,10 +23,13 @@ import { Component } from '@angular/core';
 })
 export class LogoComponent {
 
-  logo = 'assets/logo_title_white.svg';
+  logo = 'assets/granules_logo.jpg';
 
   gotoThingsboard(): void {
     window.open('https://thingsboard.io', '_blank');
   }
 
+  gotoControlytics(): void {
+    window.open('https://controlytics.ai', '_blank');
+  }
 }

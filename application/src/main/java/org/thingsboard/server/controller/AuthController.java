@@ -61,6 +61,7 @@ import org.thingsboard.server.service.security.system.SystemSecurityService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Base64;
 
 @RestController
 @TbCoreComponent
@@ -176,7 +177,8 @@ public class AuthController extends BaseController {
             String baseUrl = systemSecurityService.getBaseUrl(user.getTenantId(), user.getCustomerId(), request);
             String resetUrl = String.format("%s/api/noauth/resetPassword?resetToken=%s", baseUrl,
                     userCredentials.getResetToken());
-
+            entityActionService.logEntityAction(user, user.getId(), user, user.getCustomerId(),
+                    ActionType.CREDENTIALS_RESET_REQUEST, null);
             mailService.sendResetPasswordEmailAsync(resetUrl, email);
         } catch (Exception e) {
             log.warn("Error occurred: {}", e.getMessage());
@@ -201,7 +203,9 @@ public class AuthController extends BaseController {
                 return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
             }
             try {
-                URI location = new URI(resetURI + "?resetToken=" + resetToken);
+                User user = userService.findUserById(TenantId.SYS_TENANT_ID, userCredentials.getUserId());
+                URI location = new URI(resetURI + "?resetToken=" + resetToken + "&userId=" + Base64.getEncoder()
+                        .encodeToString(user.getEmail().getBytes()));
                 headers.setLocation(location);
                 responseStatus = HttpStatus.SEE_OTHER;
             } catch (URISyntaxException e) {

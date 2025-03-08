@@ -55,6 +55,9 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
     this.config.entityResources = entityTypeResources.get(EntityType.CUSTOMER);
     const authState = getCurrentAuthState(this.store);
 
+    if (authState.userDetails.additionalInfo.role !== 'controlytics_admin') {
+      this.config.detailsPanelEnabled = false;
+    }
     this.config.columns.push(
       new DateEntityTableColumn<Customer>('createdTime', 'common.created-time', this.datePipe, '150px'),
       new EntityTableColumn<Customer>('title', 'customer.title', '25%'),
@@ -69,6 +72,7 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
         isEnabled: (customer) => !customer.additionalInfo || !customer.additionalInfo.isPublic,
         onAction: ($event, entity) => this.manageCustomerUsers($event, entity)
       },
+      ...(authState.userDetails.additionalInfo.role === 'controlytics_admin') ? [
       {
         name: this.translate.instant('customer.manage-customer-assets'),
         nameFunction: (customer) => {
@@ -101,8 +105,8 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
         icon: 'dashboard',
         isEnabled: (customer) => true,
         onAction: ($event, entity) => this.manageCustomerDashboards($event, entity)
-      });
-    if (authState.edgesSupportEnabled) {
+      }] : [],);
+    if (authState.edgesSupportEnabled && authState.userDetails.additionalInfo.role === 'controlytics_admin') {
       this.config.cellActionDescriptors.push(
         {
           name: this.translate.instant('customer.manage-customer-edges'),

@@ -39,13 +39,15 @@ public class AggregationParams {
     private final ZoneId tzId;
 
     private final long interval;
+    @Getter
+    private final long thresholdInMs;
 
     public static AggregationParams none() {
-        return new AggregationParams(Aggregation.NONE, null, null, 0L);
+        return new AggregationParams(Aggregation.NONE, null, null, 0L, 0L);
     }
 
     public static AggregationParams milliseconds(Aggregation aggregationType, long aggregationIntervalMs) {
-        return new AggregationParams(aggregationType, IntervalType.MILLISECONDS, null, aggregationIntervalMs);
+        return new AggregationParams(aggregationType, IntervalType.MILLISECONDS, null, aggregationIntervalMs, 0L);
     }
 
     public static AggregationParams calendar(Aggregation aggregationType, IntervalType intervalType, String tzIdStr) {
@@ -53,11 +55,15 @@ public class AggregationParams {
     }
 
     public static AggregationParams calendar(Aggregation aggregationType, IntervalType intervalType, ZoneId tzId) {
-        return new AggregationParams(aggregationType, intervalType, tzId, 0L);
+        return new AggregationParams(aggregationType, intervalType, tzId, 0L, 0L);
     }
 
     public static AggregationParams of(Aggregation aggregation, IntervalType intervalType, ZoneId tzId, long interval) {
-        return new AggregationParams(aggregation, intervalType, tzId, interval);
+        return new AggregationParams(aggregation, intervalType, tzId, interval, 0L);
+    }
+
+    public static AggregationParams closest(long interval, long thresholdInMs) {
+        return new AggregationParams(Aggregation.CLOSEST, IntervalType.MILLISECONDS, null, interval, thresholdInMs);
     }
 
     public long getInterval() {

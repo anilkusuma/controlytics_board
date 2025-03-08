@@ -17,13 +17,22 @@
 import { Injectable } from '@angular/core';
 import { select, Store } from '@ngrx/store';
 import { AppState } from '../core.state';
-import { getCurrentOpenedMenuSections, selectAuth, selectIsAuthenticated } from '../auth/auth.selectors';
+import {
+  getCurrentOpenedMenuSections,
+  selectAuth,
+  selectIsAuthenticated,
+  selectUserDetails
+} from '../auth/auth.selectors';
 import { filter, map, take } from 'rxjs/operators';
 import { HomeSection, MenuSection } from '@core/services/menu.models';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Authority } from '@shared/models/authority.enum';
 import { AuthState } from '@core/auth/auth.models';
 import { NavigationEnd, Router } from '@angular/router';
+import { UserService } from '@core/http/user.service';
+import { AttributeService } from '@core/http/attribute.service';
+import {AttributeScope} from '@shared/models/telemetry/telemetry.models';
+import {User} from '@shared/models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -38,6 +47,8 @@ export class MenuService {
   );
 
   constructor(private store: Store<AppState>,
+              private userService: UserService,
+              private attributeService: AttributeService,
               private router: Router) {
     this.store.pipe(select(selectIsAuthenticated)).subscribe(
       (authenticated: boolean) => {
@@ -54,27 +65,33 @@ export class MenuService {
   }
 
   private buildMenu() {
-    this.store.pipe(select(selectAuth), take(1)).subscribe(
-      (authState: AuthState) => {
-        if (authState.authUser) {
-          let homeSections: Array<HomeSection>;
-          switch (authState.authUser.authority) {
-            case Authority.SYS_ADMIN:
-              this.currentMenuSections = this.buildSysAdminMenu();
-              homeSections = this.buildSysAdminHome();
-              break;
-            case Authority.TENANT_ADMIN:
-              this.currentMenuSections = this.buildTenantAdminMenu(authState);
-              homeSections = this.buildTenantAdminHome(authState);
-              break;
-            case Authority.CUSTOMER_USER:
-              this.currentMenuSections = this.buildCustomerUserMenu(authState);
-              homeSections = this.buildCustomerUserHome(authState);
-              break;
-          }
-          this.updateOpenedMenuSections();
-          this.menuSections$.next(this.currentMenuSections);
-          this.homeSections$.next(homeSections);
+    this.store.pipe(select(selectUserDetails), take(1)).subscribe(
+      (user: User) => {
+        if (user.authority) {
+          // this.userService.getUser(authState.authUser.userId).subscribe(
+          return this.attributeService.getEntityAttributes(user.id, AttributeScope.SERVER_SCOPE, ['role'])
+            .subscribe(data => {
+              const role: string = data.find(d => d.key === 'role')?.value;
+              let homeSections: Array<HomeSection>;
+              switch (user.authority) {
+                case Authority.SYS_ADMIN:
+                  this.currentMenuSections = this.buildSysAdminMenu();
+                  homeSections = this.buildSysAdminHome();
+                  break;
+                case Authority.TENANT_ADMIN:
+                  this.currentMenuSections = this.buildTenantAdminMenu(user, role);
+                  homeSections = this.buildTenantAdminHome(user, role);
+                  break;
+                case Authority.CUSTOMER_USER:
+                  this.currentMenuSections = this.buildCustomerUserMenu(user, role);
+                  homeSections = this.buildCustomerUserHome(user, role);
+                  break;
+              }
+              this.updateOpenedMenuSections();
+              this.menuSections$.next(this.currentMenuSections);
+              this.homeSections$.next(homeSections);
+            }
+          );
         }
       }
     );
@@ -83,7 +100,7 @@ export class MenuService {
   private updateOpenedMenuSections() {
     const url = this.router.url;
     const openedMenuSections = getCurrentOpenedMenuSections(this.store);
-    this.currentMenuSections.filter(section => section.type === 'toggle' &&
+    this.currentMenuSections?.filter(section => section.type === 'toggle' &&
       (url.startsWith(section.path) || openedMenuSections.includes(section.path))).forEach(
       section => section.opened = true
     );
@@ -364,10 +381,20 @@ export class MenuService {
         ]
       }
     );
-    return homeSections;
+    return [];
   }
 
-  private buildTenantAdminMenu(authState: AuthState): Array<MenuSection> {
+  private buildTenantAdminMenu(user: User, role: string): Array<MenuSection> {
+    if (role === 'controlytics_admin') {
+      return this.buildTenantControlyticsAdminMenu(user, role);
+    } else if (role === 'maintenance') {
+      return this.buildTenantGranulesMaintainerMenu(user, role);
+    } else {
+      return this.buildTenantGranulesAdminMenu(user, role);
+    }
+  }
+
+  private buildTenantControlyticsAdminMenu(user: User, role: string): Array<MenuSection> {
     const sections: Array<MenuSection> = [];
     sections.push(
       {
@@ -459,35 +486,35 @@ export class MenuService {
         icon: 'settings_ethernet'
       }
     );
-    if (authState.edgesSupportEnabled) {
-      sections.push(
-        {
-          id: 'edge_management',
-          name: 'edge.management',
-          type: 'toggle',
-          path: '/edgeManagement',
-          icon: 'settings_input_antenna',
-          pages: [
-            {
-              id: 'edges',
-              name: 'edge.instances',
-              fullName: 'edge.edge-instances',
-              type: 'link',
-              path: '/edgeManagement/instances',
-              icon: 'router'
-            },
-            {
-              id: 'rulechain_templates',
-              name: 'edge.rulechain-templates',
-              fullName: 'edge.edge-rulechain-templates',
-              type: 'link',
-              path: '/edgeManagement/ruleChains',
-              icon: 'settings_ethernet'
-            }
-          ]
-        }
-      );
-    }
+    // if (authState.edgesSupportEnabled) {
+    //   sections.push(
+    //     {
+    //       id: 'edge_management',
+    //       name: 'edge.management',
+    //       type: 'toggle',
+    //       path: '/edgeManagement',
+    //       icon: 'settings_input_antenna',
+    //       pages: [
+    //         {
+    //           id: 'edges',
+    //           name: 'edge.instances',
+    //           fullName: 'edge.edge-instances',
+    //           type: 'link',
+    //           path: '/edgeManagement/instances',
+    //           icon: 'router'
+    //         },
+    //         {
+    //           id: 'rulechain_templates',
+    //           name: 'edge.rulechain-templates',
+    //           fullName: 'edge.edge-rulechain-templates',
+    //           type: 'link',
+    //           path: '/edgeManagement/ruleChains',
+    //           icon: 'settings_ethernet'
+    //         }
+    //       ]
+    //     }
+    //   );
+    // }
     sections.push(
       {
         id: 'features',
@@ -675,7 +702,70 @@ export class MenuService {
     return sections;
   }
 
-  private buildTenantAdminHome(authState: AuthState): Array<HomeSection> {
+  private buildTenantGranulesMaintainerMenu(user: User, role: string): Array<MenuSection> {
+    const sections: Array<MenuSection> = [];
+    sections.push(
+      {
+        id: 'home',
+        name: 'home.home',
+        type: 'link',
+        path: '/home',
+        icon: 'home'
+      },
+      {
+        id: 'devices',
+        name: 'device.devices',
+        type: 'link',
+        path: '/entities/devices',
+        icon: 'devices_other'
+      },
+      {
+        id: 'assets',
+        name: 'asset.assets',
+        type: 'link',
+        path: '/entities/assets',
+        icon: 'domain'
+      },
+      {
+        id: 'audit_log',
+        name: 'audit-log.audit-logs',
+        type: 'link',
+        path: '/security-settings/auditLogs',
+        icon: 'track_changes'
+      }
+    );
+    return sections;
+  }
+
+  private buildTenantGranulesAdminMenu(user: User, role: string): Array<MenuSection> {
+    const sections: Array<MenuSection> = [];
+    sections.push(
+      {
+        id: 'home',
+        name: 'home.home',
+        type: 'link',
+        path: '/home',
+        icon: 'home'
+      },
+      {
+        id: 'customers',
+        name: 'customer.customers',
+        type: 'link',
+        path: '/customers',
+        icon: 'supervisor_account'
+      },
+      {
+        id: 'audit_log',
+        name: 'audit-log.audit-logs',
+        type: 'link',
+        path: '/security-settings/auditLogs',
+        icon: 'track_changes'
+      }
+    );
+    return sections;
+  }
+
+  private buildTenantAdminHome(user: User, role: string): Array<HomeSection> {
     const homeSections: Array<HomeSection> = [];
     homeSections.push(
       {
@@ -744,25 +834,25 @@ export class MenuService {
         ]
       }
     );
-    if (authState.edgesSupportEnabled) {
-      homeSections.push(
-        {
-          name: 'edge.management',
-          places: [
-            {
-              name: 'edge.edge-instances',
-              icon: 'router',
-              path: '/edgeInstances'
-            },
-            {
-              name: 'edge.rulechain-templates',
-              icon: 'settings_ethernet',
-              path: '/edgeManagement/ruleChains'
-            }
-          ]
-        }
-      );
-    }
+    // if (authState.edgesSupportEnabled) {
+    //   homeSections.push(
+    //     {
+    //       name: 'edge.management',
+    //       places: [
+    //         {
+    //           name: 'edge.edge-instances',
+    //           icon: 'router',
+    //           path: '/edgeInstances'
+    //         },
+    //         {
+    //           name: 'edge.rulechain-templates',
+    //           icon: 'settings_ethernet',
+    //           path: '/edgeManagement/ruleChains'
+    //         }
+    //       ]
+    //     }
+    //   );
+    // }
     homeSections.push(
       {
         name: 'dashboard.management',
@@ -833,7 +923,7 @@ export class MenuService {
     return homeSections;
   }
 
-  private buildCustomerUserMenu(authState: AuthState): Array<MenuSection> {
+  private buildCustomerUserMenu(user: User, role: string): Array<MenuSection> {
     const sections: Array<MenuSection> = [];
     sections.push(
       {
@@ -842,64 +932,64 @@ export class MenuService {
         type: 'link',
         path: '/home',
         icon: 'home'
-      },
-      {
-        id: 'alarms',
-        name: 'alarm.alarms',
-        type: 'link',
-        path: '/alarms',
-        icon: 'mdi:alert-outline'
-      },
-      {
-        id: 'dashboards',
-        name: 'dashboard.dashboards',
-        type: 'link',
-        path: '/dashboards',
-        icon: 'dashboards'
-      },
-      {
-        id: 'entities',
-        name: 'entity.entities',
-        type: 'toggle',
-        path: '/entities',
-        icon: 'category',
-        pages: [
-          {
-            id: 'devices',
-            name: 'device.devices',
-            type: 'link',
-            path: '/entities/devices',
-            icon: 'devices_other'
-          },
-          {
-            id: 'assets',
-            name: 'asset.assets',
-            type: 'link',
-            path: '/entities/assets',
-            icon: 'domain'
-          },
-          {
-            id: 'entity_views',
-            name: 'entity-view.entity-views',
-            type: 'link',
-            path: '/entities/entityViews',
-            icon: 'view_quilt'
-          }
-        ]
       }
+      // {
+      //   id: 'alarms',
+      //   name: 'alarm.alarms',
+      //   type: 'link',
+      //   path: '/alarms',
+      //   icon: 'mdi:alert-outline'
+      // },
+      // {
+      //   id: 'dashboards',
+      //   name: 'dashboard.dashboards',
+      //   type: 'link',
+      //   path: '/dashboards',
+      //   icon: 'dashboards'
+      // },
+      // {
+      //   id: 'entities',
+      //   name: 'entity.entities',
+      //   type: 'toggle',
+      //   path: '/entities',
+      //   icon: 'category',
+      //   pages: [
+      //     {
+      //       id: 'devices',
+      //       name: 'device.devices',
+      //       type: 'link',
+      //       path: '/entities/devices',
+      //       icon: 'devices_other'
+      //     },
+      //     {
+      //       id: 'assets',
+      //       name: 'asset.assets',
+      //       type: 'link',
+      //       path: '/entities/assets',
+      //       icon: 'domain'
+      //     },
+      //     {
+      //       id: 'entity_views',
+      //       name: 'entity-view.entity-views',
+      //       type: 'link',
+      //       path: '/entities/entityViews',
+      //       icon: 'view_quilt'
+      //     }
+      //   ]
+      // }
     );
-    if (authState.edgesSupportEnabled) {
-      sections.push(
-        {
-          id: 'edges',
-          name: 'edge.edge-instances',
-          fullName: 'edge.edge-instances',
-          type: 'link',
-          path: '/edgeManagement/instances',
-          icon: 'router'
-        }
-      );
-    }
+    // if (authState.edgesSupportEnabled) {
+    //   sections.push(
+    //     {
+    //       id: 'edges',
+    //       name: 'edge.edge-instances',
+    //       fullName: 'edge.edge-instances',
+    //       type: 'link',
+    //       path: '/edgeManagement/instances',
+    //       icon: 'router'
+    //     }
+    //   );
+    // }
     sections.push(
       {
         id: 'notifications_center',
@@ -919,10 +1009,19 @@ export class MenuService {
         ]
       }
     );
+    sections.push(
+      {
+        id: 'audit-logs',
+        type: 'link',
+        name: 'audit-log.audit-logs',
+        icon: 'track_changes',
+        path: '/auditLogs'
+      }
+    );
     return sections;
   }
 
-  private buildCustomerUserHome(authState: AuthState): Array<HomeSection> {
+  private buildCustomerUserHome(user: User, role: string): Array<HomeSection> {
     const homeSections: Array<HomeSection> = [];
     homeSections.push(
       {
@@ -956,20 +1055,20 @@ export class MenuService {
         ]
       }
     );
-    if (authState.edgesSupportEnabled) {
-      homeSections.push(
-        {
-          name: 'edge.management',
-          places: [
-            {
-              name: 'edge.edge-instances',
-              icon: 'settings_input_antenna',
-              path: '/edgeInstances'
-            }
-          ]
-        }
-      );
-    }
+    // if (authState.edgesSupportEnabled) {
+    //   homeSections.push(
+    //     {
+    //       name: 'edge.management',
+    //       places: [
+    //         {
+    //           name: 'edge.edge-instances',
+    //           icon: 'settings_input_antenna',
+    //           path: '/edgeInstances'
+    //         }
+    //       ]
+    //     }
+    //   );
+    // }
     homeSections.push(
       {
         name: 'dashboard.view-dashboards',
@@ -980,6 +1079,16 @@ export class MenuService {
             path: '/dashboards'
           }
         ]
+      }
+    );
+    homeSections.push(
+      {
+        name: 'audit-log.audit-logs',
+        places: [{
+          icon: 'track_changes',
+          path: '/auditLogs',
+          name: 'audit-log.audit-logs'
+        }]
       }
     );
     return homeSections;

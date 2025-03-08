@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.thingsboard.server.common.data.HasName;
+import org.thingsboard.server.common.data.User;
 import org.thingsboard.server.common.data.audit.ActionType;
 import org.thingsboard.server.common.data.audit.AuditLog;
 import org.thingsboard.server.common.data.id.CustomerId;
@@ -52,6 +53,13 @@ public class DummyAuditLogServiceImpl implements AuditLogService {
     @Override
     public PageData<AuditLog> findAuditLogsByTenantId(TenantId tenantId, List<ActionType> actionTypes, TimePageLink pageLink) {
         return new PageData<>();
+    }
+
+    @Override
+    public byte[] getAuditLogAsPdf(TenantId tenantId, User currentUser, List<ActionType> actionTypes,
+                                   TimePageLink pageLink,
+                                   String remarks) {
+        return new byte[0];
     }
 
     @Override

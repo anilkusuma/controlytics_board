@@ -14,18 +14,21 @@
 /// limitations under the License.
 ///
 
-import { ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { User } from '@shared/models/user.model';
-import { Authority } from '@shared/models/authority.enum';
-import { select, Store } from '@ngrx/store';
-import { AppState } from '@core/core.state';
-import { selectAuthUser, selectUserDetails } from '@core/auth/auth.selectors';
-import { map } from 'rxjs/operators';
-import { AuthService } from '@core/auth/auth.service';
-import { Router } from '@angular/router';
+import {ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit} from '@angular/core';
+import {User} from '@shared/models/user.model';
+import {Authority} from '@shared/models/authority.enum';
+import {select, Store} from '@ngrx/store';
+import {AppState} from '@core/core.state';
+import {selectAuthUser, selectUserDetails} from '@core/auth/auth.selectors';
+import {map, switchMap} from 'rxjs/operators';
+import {firstValueFrom, of} from 'rxjs';
+import {AuthService} from '@core/auth/auth.service';
+import {Router} from '@angular/router';
+import {AttributeService} from "@core/http/attribute.service";
+import {AttributeScope} from "@shared/models/telemetry/telemetry.models";
 
 @Component({
-  selector: 'tb-user-menu',
+selector: 'tb-user-menu',
   templateUrl: './user-menu.component.html',
   styleUrls: ['./user-menu.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -43,7 +46,31 @@ export class UserMenuComponent implements OnInit, OnDestroy {
 
   authorityName$ = this.store.pipe(
     select(selectUserDetails),
-    map((user) => this.getAuthorityName(user))
+    switchMap(user => {
+      if (!user) {
+        return of(null);
+      }
+      return this.attributeService.getEntityAttributes(user.id, AttributeScope.SERVER_SCOPE, ['role_display_name']).pipe(
+        map(data => {
+          const role = data.find(d => d.key === 'role_display_name')?.value;
+          if (role) {
+            return role;
+          }
+          // fallback to default authority logic
+          const authority = user.authority;
+          switch (authority) {
+            case Authority.SYS_ADMIN:
+              return 'user.sys-admin';
+            case Authority.TENANT_ADMIN:
+              return 'user.admin';
+            case Authority.CUSTOMER_USER:
+              return 'user.user';
+            default:
+              return null;
+          }
+        })
+      );
+    })
   );
 
   userDisplayName$ = this.store.pipe(
@@ -53,32 +80,14 @@ export class UserMenuComponent implements OnInit, OnDestroy {
 
   constructor(private store: Store<AppState>,
               private router: Router,
-              private authService: AuthService) {
+              private authService: AuthService,
+              private attributeService: AttributeService) {
   }
 
   ngOnInit(): void {
   }
 
   ngOnDestroy(): void {
-  }
-
-  getAuthorityName(user: User): string {
-    let name = null;
-    if (user) {
-      const authority = user.authority;
-      switch (authority) {
-        case Authority.SYS_ADMIN:
-          name = 'user.sys-admin';
-          break;
-        case Authority.TENANT_ADMIN:
-          name = 'user.tenant-admin';
-          break;
-        case Authority.CUSTOMER_USER:
-          name = 'user.customer';
-          break;
-      }
-    }
-    return name;
   }
 
   getUserDisplayName(user: User): string {

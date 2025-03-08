@@ -42,6 +42,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.rule.engine.api.MailService;
+import org.thingsboard.server.common.data.AttributeScope;
 import org.thingsboard.server.common.data.EntityType;
 import org.thingsboard.server.common.data.User;
 import org.thingsboard.server.common.data.UserEmailInfo;
@@ -53,6 +54,7 @@ import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.DashboardId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.id.UserId;
+import org.thingsboard.server.common.data.kv.AttributeKvEntry;
 import org.thingsboard.server.common.data.mobile.MobileSessionInfo;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
@@ -81,11 +83,7 @@ import org.thingsboard.server.service.security.permission.Operation;
 import org.thingsboard.server.service.security.permission.Resource;
 import org.thingsboard.server.service.security.system.SystemSecurityService;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.thingsboard.server.common.data.query.EntityKeyType.ENTITY_FIELD;
 import static org.thingsboard.server.controller.ControllerConstants.ALARM_ID_PARAM_DESCRIPTION;
@@ -120,6 +118,7 @@ public class UserController extends BaseController {
     public static final String PATHS = "paths";
     public static final String YOU_DON_T_HAVE_PERMISSION_TO_PERFORM_THIS_OPERATION = "You don't have permission to perform this operation!";
     public static final String ACTIVATE_URL_PATTERN = "%s/api/noauth/activate?activateToken=%s";
+    public static final String RESET_PASSWORD_URL_PATTERN = "%s/api/noauth/resetPassword?resetToken=%s";
     public static final String MOBILE_TOKEN_HEADER = "X-Mobile-Token";
 
     @Value("${security.user_token_access_enabled}")
@@ -156,9 +155,20 @@ public class UserController extends BaseController {
             processDashboardIdFromAdditionalInfo(additionalInfo, DEFAULT_DASHBOARD);
             processDashboardIdFromAdditionalInfo(additionalInfo, HOME_DASHBOARD);
             UserCredentials userCredentials = userService.findUserCredentialsByUserId(user.getTenantId(), user.getId());
+            try {
+                Optional<AttributeKvEntry> roleOptional = attributesService.find(user.getTenantId(), user.getId(),
+                        AttributeScope.SERVER_SCOPE,
+                        "role").get();
+
+                roleOptional.ifPresent(attributeKvEntry -> additionalInfo.put("role", attributeKvEntry.getValueAsString()));
+
+            } catch (Exception e) {
+                // ignore
+            }
             if (userCredentials.isEnabled() && !additionalInfo.has("userCredentialsEnabled")) {
                 additionalInfo.put("userCredentialsEnabled", true);
             }
+            additionalInfo.put("resetPasswordTokenEnabled", userCredentials.getResetToken() != null && !(userCredentials.getResetToken().isEmpty()));
         }
         return user;
     }
@@ -268,6 +278,54 @@ public class UserController extends BaseController {
             return activateUrl;
         } else {
             throw new ThingsboardException("User is already activated!", ThingsboardErrorCode.BAD_REQUEST_PARAMS);
+        }
+    }
+
+    @ApiOperation(value = "Get temporary password",
+            notes = "Get temporary password for the user. " + SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH)
+    @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
+    @RequestMapping(value = "/user/{userId}/temporaryPassword", method = RequestMethod.GET, produces = "text/plain")
+    @ResponseBody
+    public String getTemporaryPassword(
+            @Parameter(description = USER_ID_PARAM_DESCRIPTION)
+            @PathVariable(USER_ID) String strUserId,
+            HttpServletRequest request) throws ThingsboardException {
+        checkParameter(USER_ID, strUserId);
+        UserId userId = new UserId(toUUID(strUserId));
+        User user = checkUserId(userId, Operation.READ);
+        SecurityUser authUser = getCurrentUser();
+        UserCredentials userCredentials = userService.findUserCredentialsByUserId(authUser.getTenantId(), user.getId());
+        if (userCredentials.getResetToken() != null) {
+            return userCredentials.getResetToken();
+        } else {
+            throw new ThingsboardException("User did not request for reset password!",
+                    ThingsboardErrorCode.BAD_REQUEST_PARAMS);
+        }
+    }
+
+    @ApiOperation(value = "Get the reset password link",
+            notes = "Get the reset password link for the user. " +
+                    "The base url for activation link is configurable in the general settings of system administrator. " + SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH)
+    @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
+    @RequestMapping(value = "/user/{userId}/resetPasswordLink", method = RequestMethod.GET, produces = "text/plain")
+    @ResponseBody
+    public String getResetPasswordLink(
+            @Parameter(description = USER_ID_PARAM_DESCRIPTION)
+            @PathVariable(USER_ID) String strUserId,
+            HttpServletRequest request) throws ThingsboardException {
+        checkParameter(USER_ID, strUserId);
+        UserId userId = new UserId(toUUID(strUserId));
+        User user = checkUserId(userId, Operation.READ);
+        SecurityUser authUser = getCurrentUser();
+        UserCredentials userCredentials = userService.findUserCredentialsByUserId(authUser.getTenantId(), user.getId());
+        if (userCredentials.getResetToken() != null) {
+            String baseUrl = systemSecurityService.getBaseUrl(getTenantId(), getCurrentUser().getCustomerId(), request);
+            String activateUrl = String.format(RESET_PASSWORD_URL_PATTERN, baseUrl,
+                    userCredentials.getResetToken());
+            return activateUrl;
+        } else {
+            throw new ThingsboardException("User did not request for reset password!",
+                    ThingsboardErrorCode.BAD_REQUEST_PARAMS);
         }
     }
 

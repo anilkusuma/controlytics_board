@@ -27,12 +27,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.thingsboard.server.common.data.id.EntityId;
 import org.thingsboard.server.common.data.id.TenantId;
-import org.thingsboard.server.common.data.kv.Aggregation;
-import org.thingsboard.server.common.data.kv.DeleteTsKvQuery;
-import org.thingsboard.server.common.data.kv.IntervalType;
-import org.thingsboard.server.common.data.kv.ReadTsKvQuery;
-import org.thingsboard.server.common.data.kv.ReadTsKvQueryResult;
-import org.thingsboard.server.common.data.kv.TsKvEntry;
+import org.thingsboard.server.common.data.kv.*;
 import org.thingsboard.server.common.stats.StatsFactory;
 import org.thingsboard.server.dao.DaoUtil;
 import org.thingsboard.server.dao.dictionary.KeyDictionaryDao;
@@ -49,12 +44,10 @@ import org.thingsboard.server.dao.util.TimescaleDBTsDao;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+
+import javax.swing.text.html.parser.Entity;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Component
@@ -155,6 +148,8 @@ public class TimescaleTimeseriesDao extends AbstractSqlTimeseriesDao implements 
         var intervalType = aggParams.getIntervalType();
         if (query.getAggregation() == Aggregation.NONE) {
             return Futures.immediateFuture(findAllAsyncWithLimit(entityId, query));
+        } else if (Aggregation.CLOSEST.equals(query.getAggregation())) {
+            return Futures.immediateFuture(getClosestAggregation(query, entityId));
         } else if (IntervalType.MILLISECONDS.equals(intervalType)) {
             long startTs = query.getStartTs();
             long endTs = Math.max(query.getStartTs() + 1, query.getEndTs());
@@ -248,4 +243,34 @@ public class TimescaleTimeseriesDao extends AbstractSqlTimeseriesDao implements 
         }
     }
 
+    private ReadTsKvQueryResult getClosestAggregation(final ReadTsKvQuery query, final EntityId entityId) {
+        Integer keyId = keyDictionaryDao.getOrSaveKeyId(query.getKey());
+        final ReadTsKvQueryResult queryResult = findAllAsyncWithLimit(entityId, query);
+
+        if (queryResult.getData().isEmpty()) {
+            return queryResult;
+        }
+
+        queryResult.getData().sort(Comparator.comparingLong(TsKvEntry::getTs));
+        final List<TsKvEntry> result = new ArrayList<>();
+        for (long currentTime = query.getStartTs(); currentTime <= query.getEndTs(); currentTime += query.getInterval()) {
+             TsKvEntry closestEntry = null;
+            long minDiff = Long.MAX_VALUE;
+
+            for (TsKvEntry entry : queryResult.getData()) {
+                long diff = Math.abs(entry.getTs() - currentTime);
+                if (diff <= query.getAggParameters().getThresholdInMs() && diff < minDiff) {
+                    minDiff = diff;
+                    closestEntry = entry;
+                }
+            }
+
+            if (closestEntry != null) {
+                result.add(new BasicTsKvEntry(currentTime, closestEntry));
+            } else {
+                result.add(new BasicTsKvEntry(currentTime, new StringDataEntry(query.getKey(), "N/A")));
+            }
+        }
+        return new ReadTsKvQueryResult(query.getId(), result, result.get(result.size() - 1).getTs());
+    }
 }

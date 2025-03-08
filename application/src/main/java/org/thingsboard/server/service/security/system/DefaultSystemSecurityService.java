@@ -134,11 +134,16 @@ public class DefaultSystemSecurityService implements SystemSecurityService {
     }
 
     @Override
-    public void validateUserCredentials(TenantId tenantId, UserCredentials userCredentials, String username, String password) throws AuthenticationException {
+    public void validateUserCredentials(TenantId tenantId, UserCredentials userCredentials,
+                                        String username, String password)
+            throws AuthenticationException {
+        final User user = userService.findUserById(tenantId, userCredentials.getUserId());
+
         if (!encoder.matches(password, userCredentials.getPassword())) {
             int failedLoginAttempts = userService.increaseFailedLoginAttempts(tenantId, userCredentials.getUserId());
             SecuritySettings securitySettings = self.getSecuritySettings();
-            if (securitySettings.getMaxFailedLoginAttempts() != null && securitySettings.getMaxFailedLoginAttempts() > 0) {
+            if (securitySettings.getMaxFailedLoginAttempts() != null && securitySettings.getMaxFailedLoginAttempts() > 0
+                    && !(user.isSystemAdmin())) {
                 if (failedLoginAttempts > securitySettings.getMaxFailedLoginAttempts() && userCredentials.isEnabled()) {
                     lockAccount(userCredentials.getUserId(), username, securitySettings.getUserLockoutNotificationEmail(), securitySettings.getMaxFailedLoginAttempts());
                     throw new LockedException("Authentication Failed. Username was locked due to security policy.");
@@ -154,7 +159,8 @@ public class DefaultSystemSecurityService implements SystemSecurityService {
         userService.resetFailedLoginAttempts(tenantId, userCredentials.getUserId());
 
         SecuritySettings securitySettings = self.getSecuritySettings();
-        if (isPositiveInteger(securitySettings.getPasswordPolicy().getPasswordExpirationPeriodDays())) {
+        if (isPositiveInteger(securitySettings.getPasswordPolicy().getPasswordExpirationPeriodDays())
+                && !(user.isSystemAdmin())) {
             if ((userCredentials.getCreatedTime()
                     + TimeUnit.DAYS.toMillis(securitySettings.getPasswordPolicy().getPasswordExpirationPeriodDays()))
                     < System.currentTimeMillis()) {

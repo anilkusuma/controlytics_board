@@ -58,8 +58,7 @@ export class TenantComponent extends ContactBasedComponent<TenantInfo> {
           {
             description: [entity && entity.additionalInfo ? entity.additionalInfo.description : ''],
             homeDashboardId: [entity && entity.additionalInfo ? entity.additionalInfo.homeDashboardId : null],
-            homeDashboardHideToolbar: [entity && entity.additionalInfo &&
-            isDefinedAndNotNull(entity.additionalInfo.homeDashboardHideToolbar) ? entity.additionalInfo.homeDashboardHideToolbar : true]
+            homeDashboardHideToolbar: [true]
           }
         )
       }

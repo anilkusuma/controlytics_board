@@ -78,7 +78,7 @@ public class UserDataValidator extends DataValidator<User> {
     @Override
     protected void validateDataImpl(TenantId requestTenantId, User user) {
         if (StringUtils.isEmpty(user.getEmail())) {
-            throw new DataValidationException("User email should be specified!");
+            throw new DataValidationException("User Login ID should be specified!");
         }
 
         validateEmail(user.getEmail());

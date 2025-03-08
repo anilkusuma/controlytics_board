@@ -22,7 +22,8 @@
     : (breadcrumb.label | translate) }}
   </h1>
   <span fxHide.lt-md fxLayout="row" *ngFor="let breadcrumb of breadcrumbs$ | async; trackBy: trackByBreadcrumbs; last as isLast;" [ngSwitch]="isLast">
-	    <a *ngSwitchCase="false" [routerLink]="breadcrumb.link" [queryParams]="breadcrumb.queryParams">
+    <!--[routerLink]="breadcrumb.link" [queryParams]="breadcrumb.queryParams -->
+	    <a *ngSwitchCase="false" style="cursor: pointer">
         <ng-container
           *ngTemplateOutlet="breadcrumbWithIcon;context:{breadcrumb: breadcrumb}">
         </ng-container>

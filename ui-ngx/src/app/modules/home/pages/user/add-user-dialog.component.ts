@@ -49,7 +49,7 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
   detailsForm: UntypedFormGroup;
   user: User;
 
-  activationMethods = Object.keys(ActivationMethod);
+  activationMethods = [ActivationMethod.DISPLAY_ACTIVATION_LINK];
   activationMethodEnum = ActivationMethod;
 
   activationMethodTranslations = activationMethodTranslations;
