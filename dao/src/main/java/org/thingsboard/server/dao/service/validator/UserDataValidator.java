@@ -66,12 +66,6 @@ public class UserDataValidator extends DataValidator<User> {
         if (!old.getTenantId().equals(user.getTenantId())) {
             throw new DataValidationException("Can't update user tenant id!");
         }
-        if (!old.getAuthority().equals(user.getAuthority())) {
-            throw new DataValidationException("Can't update user authority!");
-        }
-        if (!old.getCustomerId().equals(user.getCustomerId())) {
-            throw new DataValidationException("Can't update user customer id!");
-        }
         return old;
     }
 

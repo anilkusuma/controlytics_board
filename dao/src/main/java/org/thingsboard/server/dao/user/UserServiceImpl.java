@@ -31,6 +31,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.thingsboard.common.util.JacksonUtil;
 import org.thingsboard.server.cache.user.UserCacheEvictEvent;
 import org.thingsboard.server.cache.user.UserCacheKey;
+import org.thingsboard.server.common.data.AdminSettings;
 import org.thingsboard.server.common.data.EntityType;
 import org.thingsboard.server.common.data.StringUtils;
 import org.thingsboard.server.common.data.User;
@@ -49,6 +50,8 @@ import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.security.Authority;
 import org.thingsboard.server.common.data.security.UserCredentials;
 import org.thingsboard.server.common.data.security.event.UserCredentialsInvalidationEvent;
+import org.thingsboard.server.common.data.security.model.SecuritySettings;
+import org.thingsboard.server.common.data.security.model.UserPasswordPolicy;
 import org.thingsboard.server.common.data.settings.UserSettings;
 import org.thingsboard.server.common.data.settings.UserSettingsType;
 import org.thingsboard.server.dao.entity.AbstractCachedEntityService;
@@ -60,15 +63,11 @@ import org.thingsboard.server.dao.eventsourcing.SaveEntityEvent;
 import org.thingsboard.server.dao.exception.IncorrectParameterException;
 import org.thingsboard.server.dao.service.DataValidator;
 import org.thingsboard.server.dao.service.PaginatedRemover;
+import org.thingsboard.server.dao.settings.AdminSettingsService;
+import org.thingsboard.server.dao.settings.AdminSettingsServiceImpl;
 import org.thingsboard.server.dao.sql.JpaExecutorService;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static org.thingsboard.server.common.data.StringUtils.generateSafeToken;
 import static org.thingsboard.server.dao.service.Validator.validateId;
@@ -85,9 +84,12 @@ public class UserServiceImpl extends AbstractCachedEntityService<UserCacheKey, U
     public static final String LAST_LOGIN_TS = "lastLoginTs";
     public static final String FAILED_LOGIN_ATTEMPTS = "failedLoginAttempts";
 
-    private static final int DEFAULT_TOKEN_LENGTH = 30;
+    private static final int DEFAULT_TOKEN_LENGTH = 10;
     public static final String INCORRECT_USER_ID = "Incorrect userId ";
     public static final String INCORRECT_TENANT_ID = "Incorrect tenantId ";
+
+    public static final String SPECIAL_CHARACTERS = "!@$%&_|";
+    private static final String ALL_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
     private static final String USER_CREDENTIALS_ENABLED = "userCredentialsEnabled";
 
@@ -104,6 +106,7 @@ public class UserServiceImpl extends AbstractCachedEntityService<UserCacheKey, U
     private final ApplicationEventPublisher eventPublisher;
     private final EntityCountService countService;
     private final JpaExecutorService executor;
+    private final AdminSettingsService adminSettingsService;
 
     @TransactionalEventListener(classes = UserCacheEvictEvent.class)
     @Override
@@ -175,7 +178,7 @@ public class UserServiceImpl extends AbstractCachedEntityService<UserCacheKey, U
                 countService.publishCountEntityEvictEvent(savedUser.getTenantId(), EntityType.USER);
                 UserCredentials userCredentials = new UserCredentials();
                 userCredentials.setEnabled(false);
-                userCredentials.setActivateToken(generateSafeToken(DEFAULT_TOKEN_LENGTH));
+                userCredentials.setActivateToken(generatePasswordAsPerPolicy());
                 userCredentials.setUserId(new UserId(savedUser.getUuidId()));
                 userCredentials.setAdditionalInfo(JacksonUtil.newObjectNode());
                 userCredentialsDao.save(user.getTenantId(), userCredentials);
@@ -260,7 +263,7 @@ public class UserServiceImpl extends AbstractCachedEntityService<UserCacheKey, U
         if (!userCredentials.isEnabled()) {
             throw new DisabledException(String.format("User credentials not enabled [%s]", email));
         }
-        userCredentials.setResetToken(generateSafeToken(DEFAULT_TOKEN_LENGTH));
+        userCredentials.setResetToken(generatePasswordAsPerPolicy());
         return saveUserCredentials(tenantId, userCredentials);
     }
 
@@ -270,7 +273,7 @@ public class UserServiceImpl extends AbstractCachedEntityService<UserCacheKey, U
         if (!userCredentials.isEnabled()) {
             throw new IncorrectParameterException("Unable to reset password for inactive user");
         }
-        userCredentials.setResetToken(generateSafeToken(DEFAULT_TOKEN_LENGTH));
+        userCredentials.setResetToken(generatePasswordAsPerPolicy());
         return saveUserCredentials(tenantId, userCredentials);
     }
 
@@ -600,6 +603,77 @@ public class UserServiceImpl extends AbstractCachedEntityService<UserCacheKey, U
     @Override
     public EntityType getEntityType() {
         return EntityType.USER;
+    }
+
+    private String generatePasswordAsPerPolicy() {
+        final AdminSettings adminSettings = adminSettingsService
+                .findAdminSettingsByKey(TenantId.SYS_TENANT_ID, "securitySettings");
+        if (adminSettings == null) {
+            return generateSafeToken(DEFAULT_TOKEN_LENGTH);
+        }
+        final JsonNode jsonNode = adminSettings.getJsonValue();
+        try {
+            final SecuritySettings securitySettings = JacksonUtil.convertValue(jsonNode, SecuritySettings.class);
+            if (securitySettings != null && securitySettings.getPasswordPolicy() != null) {
+                return generatePasswordMatchingPolicy(securitySettings.getPasswordPolicy());
+            } else {
+                return generateSafeToken(DEFAULT_TOKEN_LENGTH);
+            }
+        } catch (final Exception e) {
+            log.error("Error while parsing security settings", e);
+            return generateSafeToken(DEFAULT_TOKEN_LENGTH);
+        }
+    }
+
+    private String generatePasswordMatchingPolicy(final UserPasswordPolicy policy) {
+        final int minLength = policy.getMinimumLength() != null ? policy.getMinimumLength() : 10;
+        final int maxLength = policy.getMaximumLength() != null ? policy.getMaximumLength() : 15;
+        // Use the minimum length if it's valid, otherwise use a reasonable default
+        int passwordLength = Math.max(minLength, DEFAULT_TOKEN_LENGTH);
+        passwordLength = Math.min(passwordLength, maxLength);
+
+        final int minUppercase = policy.getMinimumUppercaseLetters() != null ? policy.getMinimumUppercaseLetters() : 0;
+        final int minLowercase = policy.getMinimumLowercaseLetters() != null ? policy.getMinimumLowercaseLetters() : 2;
+        final int minDigits = policy.getMinimumDigits() != null ? policy.getMinimumDigits() : 1;
+        final int minSpecial = policy.getMinimumSpecialCharacters() != null ? policy.getMinimumSpecialCharacters() : 1;
+
+        final StringBuilder password = new StringBuilder();
+        final Random random = new Random();
+
+        // Add required uppercase letters
+        for (int i = 0; i < minUppercase; i++) {
+            password.append((char) (random.nextInt(26) + 'A'));
+        }
+
+        // Add required lowercase letters
+        for (int i = 0; i < minLowercase; i++) {
+            password.append((char) (random.nextInt(26) + 'a'));
+        }
+
+        // Add required digits
+        for (int i = 0; i < minDigits; i++) {
+            password.append(random.nextInt(10));
+        }
+
+        // Add required special characters
+        for (int i = 0; i < minSpecial; i++) {
+            password.append(SPECIAL_CHARACTERS.charAt(random.nextInt(SPECIAL_CHARACTERS.length())));
+        }
+
+        while (password.length() < passwordLength) {
+            password.append(ALL_CHARACTERS.charAt(random.nextInt(ALL_CHARACTERS.length())));
+        }
+
+        // Shuffle the password to mix the characters
+        final char[] passwordArray = password.toString().toCharArray();
+        for (int i = 0; i < passwordArray.length; i++) {
+            int j = random.nextInt(passwordArray.length);
+            char temp = passwordArray[i];
+            passwordArray[i] = passwordArray[j];
+            passwordArray[j] = temp;
+        }
+
+        return new String(passwordArray);
     }
 
 }

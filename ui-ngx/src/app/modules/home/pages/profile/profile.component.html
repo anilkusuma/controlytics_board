@@ -46,13 +46,13 @@
               {{ 'user.invalid-email-format' | translate }}
             </mat-error>
           </mat-form-field>
-          <mat-form-field class="mat-block">
+          <mat-form-field class="mat-block" disabled>
             <mat-label translate>user.first-name</mat-label>
-            <input matInput formControlName="firstName"/>
+            <input matInput formControlName="firstName" disabled/>
           </mat-form-field>
-          <mat-form-field class="mat-block">
+          <mat-form-field class="mat-block" disabled>
             <mat-label translate>user.last-name</mat-label>
-            <input matInput formControlName="lastName"/>
+            <input matInput formControlName="lastName" disabled/>
           </mat-form-field>
           <div style="height: 16px;"></div>
           <tb-phone-input *ngIf="false" [required]="false"
@@ -82,7 +82,7 @@
               {{ 'dashboard.home-dashboard-hide-toolbar' | translate }}
             </mat-checkbox>
           </section>
-          <div fxLayout="row" fxLayoutAlign="end start">
+          <div fxLayout="row" fxLayoutAlign="end start" *ngIf="false">
             <button mat-button mat-raised-button color="primary"
                     type="submit"
                     [disabled]="(isLoading$ | async) || profile.invalid || !profile.dirty">

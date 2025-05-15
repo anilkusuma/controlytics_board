@@ -295,7 +295,11 @@ public class PdfReportController extends BaseController {
                 }
             }
         }
-        List<String> alarmTypeList = typeList != null ? Arrays.asList(typeList) : Collections.emptyList();
+        List<String> alarmTypeList = typeList != null ? Arrays.stream(typeList)
+                .map(s -> s.replace("\u2060", ""))
+                .toList() :
+                Collections.emptyList();
+
         UserId assigneeUserId = null;
         if (assigneeId != null) {
             assigneeUserId = new UserId(UUID.fromString(assigneeId));

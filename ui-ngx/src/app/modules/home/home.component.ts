@@ -32,8 +32,9 @@ import { instanceOfSearchableComponent, ISearchableComponent } from '@home/model
 import { ActiveComponentService } from '@core/services/active-component.service';
 import { RouterTabsComponent } from '@home/components/router-tabs.component';
 import { FormBuilder } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import { isDefined, isDefinedAndNotNull } from '@core/utils';
+import {UserRole} from "@shared/models/user.model";
 
 @Component({
   selector: 'tb-home',
@@ -41,6 +42,8 @@ import { isDefined, isDefinedAndNotNull } from '@core/utils';
   styleUrls: ['./home.component.scss']
 })
 export class HomeComponent extends PageComponent implements AfterViewInit, OnInit, OnDestroy {
+
+
 
   authState: AuthState = getCurrentAuthState(this.store);
 
@@ -73,12 +76,13 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
               @Inject(WINDOW) private window: Window,
               private activeComponentService: ActiveComponentService,
               private fb: FormBuilder,
+              private router: Router,
               public breakpointObserver: BreakpointObserver) {
     super(store);
   }
 
   ngOnInit() {
-
+    this.checkUserRole();
     const isGtSm = this.breakpointObserver.isMatched(MediaBreakpoints['gt-sm']);
     this.sidenavMode = isGtSm ? 'side' : 'over';
     this.sidenavOpened = isGtSm;
@@ -104,6 +108,8 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
   }
 
   ngAfterViewInit() {
+    this.checkUserRole();
+
     this.textSearch.valueChanges.pipe(
       debounceTime(150),
       startWith(''),
@@ -150,6 +156,9 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
     this.textSearch.reset('', {emitEvent: false});
     this.activeComponent = activeComponent;
 
+    // Check user role when active component changes
+    this.checkUserRole();
+
     if (activeComponent && activeComponent instanceof RouterTabsComponent
       && isDefinedAndNotNull(this.activeComponent.activatedRoute?.snapshot?.data?.showMainLoadingBar)) {
       this.hideLoadingBar = !this.activeComponent.activatedRoute.snapshot.data.showMainLoadingBar;
@@ -193,6 +202,20 @@ export class HomeComponent extends PageComponent implements AfterViewInit, OnIni
   private searchTextUpdated(searchText: string) {
     if (this.searchableComponent) {
       this.searchableComponent.onSearchTextUpdated(searchText);
+    }
+  }
+
+  private checkUserRole() {
+    // Only check and redirect if we're on the /home route
+    if (this.router.url === '/home' &&
+        this.authState.userDetails.additionalInfo.role !== null &&
+        this.authState.userDetails.additionalInfo.role !== undefined &&
+        this.authState.userDetails.additionalInfo.role !== UserRole.ADMIN &&
+        this.authState.userDetails.additionalInfo.role !== UserRole.CONTROLYTICS_ADMIN &&
+        this.authState.userDetails.additionalInfo.role !== UserRole.MAINTENANCE) {
+      this.router.navigate(['/dashboards']).then(r => {
+        console.log(r);
+      });
     }
   }
 }

@@ -160,7 +160,7 @@ const routes: Routes = [
         component: GeneralSettingsComponent,
         canDeactivate: [ConfirmOnExitGuard],
         data: {
-          auth: [Authority.SYS_ADMIN],
+          auth: [Authority.SYS_ADMIN, Authority.TENANT_ADMIN],
           title: 'admin.general-settings',
           breadcrumb: {
             label: 'admin.general',
@@ -326,7 +326,7 @@ const routes: Routes = [
         path: '',
         children: [],
         data: {
-          auth: [Authority.SYS_ADMIN],
+          auth: [Authority.SYS_ADMIN, Authority.TENANT_ADMIN],
           redirectTo: {
             SYS_ADMIN: '/security-settings/general'
           }
@@ -337,7 +337,7 @@ const routes: Routes = [
         component: SecuritySettingsComponent,
         canDeactivate: [ConfirmOnExitGuard],
         data: {
-          auth: [Authority.SYS_ADMIN],
+          auth: [Authority.SYS_ADMIN, Authority.TENANT_ADMIN],
           title: 'admin.general',
           breadcrumb: {
             label: 'admin.general',

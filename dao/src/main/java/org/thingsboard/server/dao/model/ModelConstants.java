@@ -342,6 +342,7 @@ public class ModelConstants {
     public static final String DASHBOARD_ASSIGNED_CUSTOMERS_PROPERTY = "assigned_customers";
     public static final String DASHBOARD_MOBILE_HIDE_PROPERTY = "mobile_hide";
     public static final String DASHBOARD_MOBILE_ORDER_PROPERTY = "mobile_order";
+    public static final String DASHBOARD_TYPE = "dashboard_type";
 
     /**
      * Plugin component metadata constants.

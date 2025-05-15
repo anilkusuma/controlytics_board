@@ -52,7 +52,7 @@ export class UserMenuComponent implements OnInit, OnDestroy {
       }
       return this.attributeService.getEntityAttributes(user.id, AttributeScope.SERVER_SCOPE, ['role_display_name']).pipe(
         map(data => {
-          const role = data.find(d => d.key === 'role_display_name')?.value;
+          const role = user.additionalInfo.role;
           if (role) {
             return role;
           }

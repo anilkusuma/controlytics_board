@@ -32,15 +32,44 @@ export interface User extends BaseData<UserId>, HasTenantId {
   additionalInfo: any;
 }
 
+export enum UserRole {
+  ADMIN = 'admin',
+  OPERATOR = 'operator',
+  MAINTENANCE = 'maintenance',
+  SUPERVISOR = 'supervisor',
+  CONTROLYTICS_ADMIN = 'controlytics_admin',
+}
+
+export const UserRoleUtils = {
+  getDisplayName(role: UserRole): string {
+    switch (role) {
+      case UserRole.ADMIN:
+        return 'Admin';
+      case UserRole.OPERATOR:
+        return 'Operator';
+      case UserRole.MAINTENANCE:
+        return 'Maintenance Personnel';
+      case UserRole.SUPERVISOR:
+        return 'Supervisor';
+      case UserRole.CONTROLYTICS_ADMIN:
+        return 'Controlytics Admin';
+      default:
+        return 'Unknown Role';
+    }
+  }
+};
+
 export enum ActivationMethod {
   DISPLAY_ACTIVATION_LINK = 'DISPLAY_ACTIVATION_LINK',
-  SEND_ACTIVATION_MAIL = 'SEND_ACTIVATION_MAIL'
+  SEND_ACTIVATION_MAIL = 'SEND_ACTIVATION_MAIL',
+  DISPLAY_TEMPORARY_PASSWORD = 'DISPLAY_TEMPORARY_PASSWORD'
 }
 
 export const activationMethodTranslations = new Map<ActivationMethod, string>(
   [
     [ActivationMethod.DISPLAY_ACTIVATION_LINK, 'user.display-activation-link'],
-    [ActivationMethod.SEND_ACTIVATION_MAIL, 'user.send-activation-mail']
+    [ActivationMethod.SEND_ACTIVATION_MAIL, 'user.send-activation-mail'],
+    [ActivationMethod.DISPLAY_TEMPORARY_PASSWORD, 'user.display-activation-password']
   ]
 );
 

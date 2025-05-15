@@ -42,6 +42,7 @@ public class DashboardInfo extends BaseData<DashboardId> implements HasName, Has
     private Set<ShortCustomerInfo> assignedCustomers;
     private boolean mobileHide;
     private Integer mobileOrder;
+    private String dashboardType;
 
     public DashboardInfo() {
         super();
@@ -101,6 +102,15 @@ public class DashboardInfo extends BaseData<DashboardId> implements HasName, Has
 
     public void setImage(String image) {
         this.image = image;
+    }
+
+    @Schema(description = "")
+    public String getDashboardType() {
+        return dashboardType;
+    }
+
+    public void setDashboardType(String dashboardType) {
+        this.dashboardType = dashboardType;
     }
 
     @Schema(description = "List of assigned customers with their info.", accessMode = Schema.AccessMode.READ_ONLY)

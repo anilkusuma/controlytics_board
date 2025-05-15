@@ -65,6 +65,9 @@ public final class DashboardEntity extends BaseSqlEntity<Dashboard> {
     @Column(name = ModelConstants.DASHBOARD_MOBILE_ORDER_PROPERTY)
     private Integer mobileOrder;
 
+    @Column(name = ModelConstants.DASHBOARD_TYPE)
+    private String dashboardType;
+
     @Convert(converter = JsonConverter.class)
     @Column(name = ModelConstants.DASHBOARD_CONFIGURATION_PROPERTY)
     private JsonNode configuration;
@@ -96,6 +99,7 @@ public final class DashboardEntity extends BaseSqlEntity<Dashboard> {
         this.mobileHide = dashboard.isMobileHide();
         this.mobileOrder = dashboard.getMobileOrder();
         this.configuration = dashboard.getConfiguration();
+        this.dashboardType = dashboard.getDashboardType();
         if (dashboard.getExternalId() != null) {
             this.externalId = dashboard.getExternalId().getId();
         }
@@ -120,6 +124,7 @@ public final class DashboardEntity extends BaseSqlEntity<Dashboard> {
         dashboard.setMobileHide(mobileHide);
         dashboard.setMobileOrder(mobileOrder);
         dashboard.setConfiguration(configuration);
+        dashboard.setDashboardType(dashboardType);
         if (externalId != null) {
             dashboard.setExternalId(new DashboardId(externalId));
         }

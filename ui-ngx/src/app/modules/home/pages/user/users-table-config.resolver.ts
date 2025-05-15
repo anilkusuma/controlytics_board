@@ -25,12 +25,12 @@ import {
 import { TranslateService } from '@ngx-translate/core';
 import { DatePipe } from '@angular/common';
 import { EntityType, entityTypeResources, entityTypeTranslations } from '@shared/models/entity-type.models';
-import { User } from '@shared/models/user.model';
+import {User, UserRole} from '@shared/models/user.model';
 import { UserService } from '@core/http/user.service';
 import { UserComponent } from '@modules/home/pages/user/user.component';
 import { CustomerService } from '@core/http/customer.service';
 import { map, mergeMap, take, tap } from 'rxjs/operators';
-import { Observable, of } from 'rxjs';
+import {forkJoin, Observable, of} from 'rxjs';
 import { Authority } from '@shared/models/authority.enum';
 import { CustomerId } from '@shared/models/id/customer-id';
 import { MatDialog } from '@angular/material/dialog';
@@ -51,6 +51,7 @@ import { TenantService } from '@app/core/http/tenant.service';
 import { TenantId } from '@app/shared/models/id/tenant-id';
 import { UserTabsComponent } from '@home/pages/user/user-tabs.component';
 import { isDefinedAndNotNull } from '@core/utils';
+import {NotificationRule} from "@shared/models/notification.models";
 
 export interface UsersTableRouteData {
   authority: Authority;
@@ -86,6 +87,9 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
       new DateEntityTableColumn<User>('createdTime', 'common.created-time', this.datePipe, '150px'),
       new EntityTableColumn<User>('firstName', 'user.first-name', '33%'),
       new EntityTableColumn<User>('lastName', 'user.last-name', '33%'),
+      new EntityTableColumn<User>('additionalInfo.role', 'user.role', '20%',
+        (target) => target.additionalInfo?.role || '',
+        () => ({}), false),
       new EntityTableColumn<User>('email', 'user.login-id', '33%')
     );
 
@@ -108,7 +112,24 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
       tap((auth) => {
         this.authUser = auth.userDetails;
         this.authority = routeParams.tenantId ? Authority.TENANT_ADMIN : Authority.CUSTOMER_USER;
-        if (this.authority === Authority.TENANT_ADMIN) {
+        if (this.authUser.additionalInfo.role === UserRole.ADMIN) {
+          this.tenantId = this.authUser.tenantId.id;
+          this.customerId = routeParams.customerId;
+          this.config.entitiesFetchFunction = pageLink => forkJoin([
+           this.userService.getTenantAdmins(this.tenantId, pageLink),
+           this.userService.getCustomerUsers(this.customerId, pageLink)
+          ]).pipe(
+             map(([tenantAdmins, customerUsers]) => ({
+               data: [...tenantAdmins.data.filter(user => user.additionalInfo?.role === UserRole.ADMIN
+                 || user.additionalInfo?.role === UserRole.MAINTENANCE), ...customerUsers.data],
+               totalPages: Math.max(tenantAdmins.totalPages, customerUsers.totalPages),
+               totalElements: tenantAdmins.data.filter(user => user.additionalInfo?.role === UserRole.ADMIN
+                 || user.additionalInfo?.role === UserRole.MAINTENANCE).length + customerUsers.totalElements,
+               hasNext: tenantAdmins.hasNext || customerUsers.hasNext
+             }))
+           );
+        }
+        else if (this.authority === Authority.TENANT_ADMIN) {
           this.tenantId = routeParams.tenantId;
           this.customerId = NULL_UUID;
           this.config.entitiesFetchFunction = pageLink => this.userService.getTenantAdmins(this.tenantId, pageLink);
@@ -157,7 +178,13 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
   saveUser(user: User): Observable<User> {
     user.tenantId = new TenantId(this.tenantId);
     user.customerId = new CustomerId(this.customerId);
-    user.authority = this.authority;
+    if (user.additionalInfo.role === UserRole.ADMIN
+      || user.additionalInfo.role === UserRole.MAINTENANCE) {
+      user.authority = Authority.TENANT_ADMIN;
+      user.customerId = undefined;
+    } else {
+      user.authority = this.authority;
+    }
     return this.userService.saveUser(user);
   }
 
@@ -207,6 +234,25 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
     );
   }
 
+  displayActivationPassword($event: Event, user: User) {
+    if ($event) {
+      $event.stopPropagation();
+    }
+    this.userService.getActivationPassword(user.id.id).subscribe(
+      (activationLink) => {
+        this.dialog.open<ActivationLinkDialogComponent, ActivationLinkDialogData,
+          void>(ActivationLinkDialogComponent, {
+          disableClose: true,
+          panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
+          data: {
+            activationLink,
+            isTemporaryPassword: true
+          }
+        });
+      }
+    );
+  }
+
   displayResetPasswordLink($event: Event, user: User) {
     if ($event) {
       $event.stopPropagation();
@@ -219,6 +265,25 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
           panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
           data: {
             activationLink: resetPasswordLink
+          }
+        });
+      }
+    );
+  }
+
+  displayTemporaryPassword($event: Event, user: User) {
+    if ($event) {
+      $event.stopPropagation();
+    }
+    this.userService.getTemporaryPassword(user.id.id).subscribe(
+      (temporaryPassword) => {
+        this.dialog.open<ActivationLinkDialogComponent, ActivationLinkDialogData,
+          void>(ActivationLinkDialogComponent, {
+          disableClose: true,
+          panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
+          data: {
+            activationLink: temporaryPassword,
+            isTemporaryPassword: true
           }
         });
       }
@@ -266,6 +331,9 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
       case 'displayActivationLink':
         this.displayActivationLink(action.event, action.entity);
         return true;
+      case 'displayActivationPassword':
+        this.displayActivationPassword(action.event, action.entity);
+        return true;
       case 'resendActivation':
         this.resendActivation(action.event, action.entity);
         return true;
@@ -277,6 +345,9 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
         return true;
       case 'displayResetPasswordLink':
         this.displayResetPasswordLink(action.event, action.entity);
+        return true;
+      case 'displayTemporaryPassword':
+        this.displayTemporaryPassword(action.event, action.entity);
         return true;
     }
     return false;

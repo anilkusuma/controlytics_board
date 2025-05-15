@@ -62,6 +62,9 @@ public class DashboardInfoEntity extends BaseSqlEntity<DashboardInfo> {
     @Column(name = ModelConstants.DASHBOARD_MOBILE_ORDER_PROPERTY)
     private Integer mobileOrder;
 
+    @Column(name = ModelConstants.DASHBOARD_TYPE)
+    private String dashboardType;
+
     public DashboardInfoEntity() {
         super();
     }
@@ -85,6 +88,7 @@ public class DashboardInfoEntity extends BaseSqlEntity<DashboardInfo> {
         }
         this.mobileHide = dashboardInfo.isMobileHide();
         this.mobileOrder = dashboardInfo.getMobileOrder();
+        this.dashboardType = dashboardInfo.getDashboardType();
     }
 
     @Override
@@ -105,6 +109,7 @@ public class DashboardInfoEntity extends BaseSqlEntity<DashboardInfo> {
         }
         dashboardInfo.setMobileHide(mobileHide);
         dashboardInfo.setMobileOrder(mobileOrder);
+        dashboardInfo.setDashboardType(dashboardType);
         return dashboardInfo;
     }
 

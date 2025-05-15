@@ -62,7 +62,9 @@ export class LoginComponent extends PageComponent implements OnInit {
   login(): void {
     if (this.loginFormGroup.valid) {
       this.authService.login(this.loginFormGroup.value).subscribe(
-        () => {},
+        () => {
+          console.log('Login successful');
+        },
         (error: HttpErrorResponse) => {
           if (error && error.error && error.error.errorCode) {
             if (error.error.errorCode === Constants.serverErrorCode.credentialsExpired) {

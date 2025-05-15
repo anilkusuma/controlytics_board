@@ -33,8 +33,8 @@ import {
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { PageComponent } from '@shared/components/page.component';
-import { AuthUser } from '@shared/models/user.model';
-import { getCurrentAuthUser } from '@core/auth/auth.selectors';
+import {AuthUser, User, UserRole} from '@shared/models/user.model';
+import {getCurrentAuthState, getCurrentAuthUser} from '@core/auth/auth.selectors';
 import { Timewindow, toHistoryTimewindow } from '@shared/models/time/time.models';
 import { TimeService } from '@core/services/time.service';
 import { GridsterComponent, GridsterConfig, GridType } from 'angular-gridster2';
@@ -69,6 +69,8 @@ import { TbPopoverComponent } from '@shared/components/popover.component';
 export class DashboardComponent extends PageComponent implements IDashboardComponent, DoCheck, OnInit, OnDestroy, AfterViewInit, OnChanges {
 
   authUser: AuthUser;
+
+  userDetails: User;
 
   @Input()
   widgets: Iterable<Widget>;
@@ -199,6 +201,7 @@ export class DashboardComponent extends PageComponent implements IDashboardCompo
               private ngZone: NgZone) {
     super(store);
     this.authUser = getCurrentAuthUser(store);
+    this.userDetails = getCurrentAuthState(store).userDetails;
   }
 
   ngOnInit(): void {
@@ -613,4 +616,10 @@ export class DashboardComponent extends PageComponent implements IDashboardCompo
     return isMobileSize;
   }
 
+  isMaintenanceUser(): boolean {
+    return this.userDetails && this.userDetails.additionalInfo.role === UserRole.MAINTENANCE;
+  }
+  isOperatorUser(): boolean {
+    return this.userDetails && this.userDetails.additionalInfo.role === UserRole.OPERATOR;
+  }
 }

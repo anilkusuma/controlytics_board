@@ -36,15 +36,21 @@
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
-          (click)="onEntityAction($event, 'displayActivationLink')"
+          (click)="onEntityAction($event, 'displayActivationPassword')"
           [fxShow]="!isEdit && !isUserCredentialPresent()">
-    {{'user.display-activation-link' | translate }}
+    {{'user.display-activation-password' | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'displayResetPasswordLink')"
           [fxShow]="!isEdit && isForgotPasswordEnabled()">
     {{'user.display-reset-password-link' | translate }}
+  </button>
+  <button mat-raised-button color="primary"
+          [disabled]="(isLoading$ | async)"
+          (click)="onEntityAction($event, 'displayTemporaryPassword')"
+          [fxShow]="!isEdit && isTemporaryPasswordEnabled()">
+    {{'user.display-temporary-password' | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
@@ -74,23 +80,38 @@
         <mat-label translate>user.last-name</mat-label>
         <input matInput formControlName="lastName">
       </mat-form-field>
-<!--      <tb-phone-input [required]="false"-->
-<!--                      label="{{ 'contact.phone' | translate }}"-->
-<!--                      [enableFlagsSelect]="true"-->
-<!--                      formControlName="phone">-->
-<!--      </tb-phone-input>-->
       <div formGroupName="additionalInfo" fxLayout="column">
         <mat-form-field class="mat-block">
           <mat-label translate>user.description</mat-label>
           <textarea matInput formControlName="description" rows="2"></textarea>
         </mat-form-field>
+        <mat-form-field class="mat-block">
+          <mat-label translate>user.role</mat-label>
+          <mat-select formControlName="role" [compareWith]="compareRoles" (selectionChange)="onRoleChanged($event)">
+            <mat-option [value]="UserRole.ADMIN">
+              {{ 'user.role-admin' | translate }}
+            </mat-option>
+            <mat-option [value]="UserRole.MAINTENANCE">
+              {{ 'user.role-maintenance' | translate }}
+            </mat-option>
+            <mat-option [value]="UserRole.SUPERVISOR">
+              {{ 'user.role-supervisor' | translate }}
+            </mat-option>
+            <mat-option [value]="UserRole.OPERATOR">
+              {{ 'user.role-operator' | translate }}
+            </mat-option>
+            <mat-option *ngIf="authority === Authority.SYS_ADMIN" [value]="UserRole.CONTROLYTICS_ADMIN">
+              {{ 'user.role-controlytics-admin' | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
         <section class="tb-default-dashboard" fxFlex fxLayout="column" *ngIf="entity?.id">
-          <section fxFlex fxLayout="column" fxLayout.gt-sm="row">
+          <section fxFlex fxLayout="column" fxLayout.gt-sm="row" *ngIf=false>
             <tb-dashboard-autocomplete
               fxFlex
               label="{{ 'user.default-dashboard' | translate }}"
               formControlName="defaultDashboardId"
-              [dashboardsScope]="entity?.authority === authority.TENANT_ADMIN ? 'tenant' : 'customer'"
+              [dashboardsScope]="entity?.authority === Authority.TENANT_ADMIN ? 'tenant' : 'customer'"
               [tenantId]="entity?.tenantId?.id"
               [customerId]="entity?.customerId?.id"
               [selectFirstDashboard]="false"
@@ -99,12 +120,12 @@
               {{ 'user.always-fullscreen' | translate }}
             </mat-checkbox>
           </section>
-          <section fxFlex fxLayout="column" fxLayout.gt-sm="row">
+          <section fxFlex fxLayout="column" fxLayout.gt-sm="row" *ngIf="authority === Authority.SYS_ADMIN">
             <tb-dashboard-autocomplete
               fxFlex
               label="{{ 'dashboard.home-dashboard' | translate }}"
               formControlName="homeDashboardId"
-              [dashboardsScope]="entity?.authority === authority.TENANT_ADMIN ? 'tenant' : 'customer'"
+              [dashboardsScope]="entity?.authority === Authority.TENANT_ADMIN ? 'tenant' : 'customer'"
               [tenantId]="entity?.tenantId?.id"
               [customerId]="entity?.customerId?.id"
               [selectFirstDashboard]="false"
@@ -112,6 +133,17 @@
             <mat-checkbox [disabled]="true" fxFlex formControlName="homeDashboardHideToolbar">
               {{ 'dashboard.home-dashboard-hide-toolbar' | translate }}
             </mat-checkbox>
+          </section>
+          <section>
+            <fieldset [disabled]="isLoading$ | async">
+              <tb-entity-list #tbEntityList
+                formControlName="assignedDashboardIds"
+                [required]="false"
+                [subType]="selectedRole"
+                labelText="{{ 'dashboard.assigned-dashboards' | translate }}"
+                [entityType]="entityType.DASHBOARD">
+              </tb-entity-list>
+            </fieldset>
           </section>
         </section>
       </div>

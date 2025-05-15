@@ -14,9 +14,9 @@
 /// limitations under the License.
 ///
 
-import { Injectable } from '@angular/core';
+import {Injectable} from '@angular/core';
 
-import { ActivatedRouteSnapshot, Resolve, Router } from '@angular/router';
+import {ActivatedRouteSnapshot, Resolve, Router} from '@angular/router';
 import {
   CellActionDescriptor,
   checkBoxCell,
@@ -26,20 +26,20 @@ import {
   GroupActionDescriptor,
   HeaderActionDescriptor
 } from '@home/models/entity/entities-table-config.models';
-import { TranslateService } from '@ngx-translate/core';
-import { DatePipe } from '@angular/common';
-import { EntityType, entityTypeResources, entityTypeTranslations } from '@shared/models/entity-type.models';
-import { EntityAction } from '@home/models/entity/entity-component.models';
-import { forkJoin, Observable, of } from 'rxjs';
-import { select, Store } from '@ngrx/store';
-import { selectAuthUser } from '@core/auth/auth.selectors';
-import { map, mergeMap, take, tap } from 'rxjs/operators';
-import { AppState } from '@core/core.state';
-import { Authority } from '@app/shared/models/authority.enum';
-import { CustomerService } from '@core/http/customer.service';
-import { Customer } from '@app/shared/models/customer.model';
-import { MatDialog } from '@angular/material/dialog';
-import { DialogService } from '@core/services/dialog.service';
+import {TranslateService} from '@ngx-translate/core';
+import {DatePipe} from '@angular/common';
+import {EntityType, entityTypeResources, entityTypeTranslations} from '@shared/models/entity-type.models';
+import {EntityAction} from '@home/models/entity/entity-component.models';
+import {forkJoin, Observable, of} from 'rxjs';
+import {select, Store} from '@ngrx/store';
+import {getCurrentAuthState, selectAuthUser} from '@core/auth/auth.selectors';
+import {map, mergeMap, take, tap} from 'rxjs/operators';
+import {AppState} from '@core/core.state';
+import {Authority} from '@app/shared/models/authority.enum';
+import {CustomerService} from '@core/http/customer.service';
+import {Customer} from '@app/shared/models/customer.model';
+import {MatDialog} from '@angular/material/dialog';
+import {DialogService} from '@core/services/dialog.service';
 import {
   AddEntitiesToCustomerDialogComponent,
   AddEntitiesToCustomerDialogData
@@ -52,8 +52,8 @@ import {
   isCurrentPublicDashboardCustomer,
   isPublicDashboard
 } from '@app/shared/models/dashboard.models';
-import { DashboardService } from '@app/core/http/dashboard.service';
-import { DashboardFormComponent } from '@modules/home/pages/dashboard/dashboard-form.component';
+import {DashboardService} from '@app/core/http/dashboard.service';
+import {DashboardFormComponent} from '@modules/home/pages/dashboard/dashboard-form.component';
 import {
   ManageDashboardCustomersActionType,
   ManageDashboardCustomersDialogComponent,
@@ -63,26 +63,28 @@ import {
   MakeDashboardPublicDialogComponent,
   MakeDashboardPublicDialogData
 } from '@modules/home/pages/dashboard/make-dashboard-public-dialog.component';
-import { DashboardTabsComponent } from '@home/pages/dashboard/dashboard-tabs.component';
-import { ImportExportService } from '@shared/import-export/import-export.service';
-import { EdgeService } from '@core/http/edge.service';
+import {DashboardTabsComponent} from '@home/pages/dashboard/dashboard-tabs.component';
+import {ImportExportService} from '@shared/import-export/import-export.service';
+import {EdgeService} from '@core/http/edge.service';
 import {
   AddEntitiesToEdgeDialogComponent,
   AddEntitiesToEdgeDialogData
 } from '@home/dialogs/add-entities-to-edge-dialog.component';
-import { HomeDialogsService } from '@home/dialogs/home-dialogs.service';
-import { Widget } from '@shared/models/widget.models';
-import { EntityAliases } from '@shared/models/alias.models';
+import {HomeDialogsService} from '@home/dialogs/home-dialogs.service';
+import {Widget} from '@shared/models/widget.models';
+import {EntityAliases} from '@shared/models/alias.models';
 import {
   EntityAliasesDialogComponent,
   EntityAliasesDialogData
 } from '@home/components/alias/entity-aliases-dialog.component';
+import {UserRole} from "@shared/models/user.model";
 
 @Injectable()
 export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<DashboardInfo | Dashboard>> {
 
   private readonly config: EntityTableConfig<DashboardInfo | Dashboard> = new EntityTableConfig<DashboardInfo | Dashboard>();
 
+  private userRole: UserRole;
   constructor(private store: Store<AppState>,
               private dashboardService: DashboardService,
               private customerService: CustomerService,
@@ -95,6 +97,8 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
               private router: Router,
               private dialog: MatDialog) {
 
+
+    this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
     this.config.entityType = EntityType.DASHBOARD;
     this.config.entityComponent = DashboardFormComponent;
     this.config.entityTabsComponent = DashboardTabsComponent;
@@ -171,9 +175,9 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         this.config.groupActionDescriptors = this.configureGroupActions(this.config.componentsData.dashboardScope);
         this.config.addActionDescriptors = this.configureAddActions(this.config.componentsData.dashboardScope);
         this.config.addEnabled = !(this.config.componentsData.dashboardScope === 'customer_user' ||
-          this.config.componentsData.dashboardScope === 'edge_customer_user');
-        this.config.entitiesDeleteEnabled = this.config.componentsData.dashboardScope === 'tenant';
-        this.config.deleteEnabled = () => this.config.componentsData.dashboardScope === 'tenant';
+          this.config.componentsData.dashboardScope === 'edge_customer_user' || this.userRole === UserRole.MAINTENANCE);
+        this.config.entitiesDeleteEnabled = this.config.componentsData.dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE;
+        this.config.deleteEnabled = () => this.config.componentsData.dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE;
         return this.config;
       })
     );
@@ -213,7 +217,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
 
   configureCellActions(dashboardScope: string): Array<CellActionDescriptor<DashboardInfo>> {
     const actions: Array<CellActionDescriptor<DashboardInfo>> = [];
-    if (dashboardScope === 'tenant') {
+    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE) {
       actions.push(
         {
           name: this.translate.instant('dashboard.export'),
@@ -279,20 +283,22 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    actions.push(
-      {
-        name: this.translate.instant('dashboard.dashboard-details'),
-        icon: 'edit',
-        isEnabled: () => true,
-        onAction: ($event, entity) => this.config.toggleEntityDetails($event, entity)
-      }
-    );
+    if (this.userRole !== UserRole.MAINTENANCE) {
+      actions.push(
+        {
+          name: this.translate.instant('dashboard.dashboard-details'),
+          icon: 'edit',
+          isEnabled: () => true,
+          onAction: ($event, entity) => this.config.toggleEntityDetails($event, entity)
+        }
+      );
+    }
     return actions;
   }
 
   configureGroupActions(dashboardScope: string): Array<GroupActionDescriptor<DashboardInfo>> {
     const actions: Array<GroupActionDescriptor<DashboardInfo>> = [];
-    if (dashboardScope === 'tenant') {
+    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE) {
       actions.push(
         {
           name: this.translate.instant('dashboard.assign-dashboards'),
@@ -336,7 +342,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
 
   configureAddActions(dashboardScope: string): Array<HeaderActionDescriptor> {
     const actions: Array<HeaderActionDescriptor> = [];
-    if (dashboardScope === 'tenant') {
+    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE) {
       actions.push(
         {
           name: this.translate.instant('dashboard.create-new-dashboard'),

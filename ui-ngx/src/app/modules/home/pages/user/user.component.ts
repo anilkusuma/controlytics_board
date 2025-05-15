@@ -14,12 +14,12 @@
 /// limitations under the License.
 ///
 
-import {ChangeDetectorRef, Component, Inject, Optional} from '@angular/core';
+import {ChangeDetectorRef, Component, Inject, Optional, ViewChild} from '@angular/core';
 import {select, Store} from '@ngrx/store';
 import {AppState} from '@core/core.state';
 import {EntityComponent} from '../../components/entity/entity.component';
 import {UntypedFormBuilder, UntypedFormGroup, Validators} from '@angular/forms';
-import {User} from '@shared/models/user.model';
+import {User, UserRole} from '@shared/models/user.model';
 import {selectAuth} from '@core/auth/auth.selectors';
 import {map} from 'rxjs/operators';
 import {Authority} from '@shared/models/authority.enum';
@@ -27,6 +27,8 @@ import {isDefinedAndNotNull} from '@core/utils';
 import {EntityTableConfig} from '@home/models/entity/entities-table-config.models';
 import {ActionNotificationShow} from '@app/core/notification/notification.actions';
 import {TranslateService} from '@ngx-translate/core';
+import {EntityType} from "@shared/models/entity-type.models";
+import {MatSelectChange} from "@angular/material/select";
 
 @Component({
   selector: 'tb-user',
@@ -35,7 +37,11 @@ import {TranslateService} from '@ngx-translate/core';
 })
 export class UserComponent extends EntityComponent<User> {
 
-  authority = Authority;
+  authority: Authority;
+  userRole: string;
+  selectedRole = '';
+
+  @ViewChild('tbEntityList') tbEntityList;
 
   loginAsUserEnabled$ = this.store.pipe(
     select(selectAuth),
@@ -49,6 +55,10 @@ export class UserComponent extends EntityComponent<User> {
               protected cd: ChangeDetectorRef,
               protected translate: TranslateService) {
     super(store, fb, entityValue, entitiesTableConfigValue, cd);
+    store.select(selectAuth).subscribe(auth => {
+        this.authority = auth.authUser.authority;
+        this.userRole = auth.userDetails.additionalInfo?.role;
+    });
   }
 
   hideDelete() {
@@ -68,11 +78,16 @@ export class UserComponent extends EntityComponent<User> {
   }
 
   isForgotPasswordEnabled(): boolean {
+    return false;
+  }
+
+  isTemporaryPasswordEnabled(): boolean {
     return isDefinedAndNotNull(this.entity?.additionalInfo?.resetPasswordTokenEnabled) &&
       this.entity.additionalInfo.resetPasswordTokenEnabled === true;
   }
 
   buildForm(entity: User): UntypedFormGroup {
+    this.selectedRole = entity && entity.additionalInfo && entity.additionalInfo.role ? entity.additionalInfo.role : null;
     return this.fb.group(
       {
         email: [entity ? entity.email : '', [Validators.required, Validators.minLength(3),
@@ -87,7 +102,9 @@ export class UserComponent extends EntityComponent<User> {
             defaultDashboardFullscreen: [entity && entity.additionalInfo ? entity.additionalInfo.defaultDashboardFullscreen : false],
             homeDashboardId: [entity && entity.additionalInfo ? entity.additionalInfo.homeDashboardId : null],
             homeDashboardHideToolbar: [entity && entity.additionalInfo &&
-            isDefinedAndNotNull(entity.additionalInfo.homeDashboardHideToolbar) ? entity.additionalInfo.homeDashboardHideToolbar : true]
+            isDefinedAndNotNull(entity.additionalInfo.homeDashboardHideToolbar) ? entity.additionalInfo.homeDashboardHideToolbar : true],
+            role: [entity && entity.additionalInfo && entity.additionalInfo.role ? entity.additionalInfo.role : null],
+            assignedDashboardIds: [entity && entity.additionalInfo ? entity.additionalInfo.assignedDashboardIds : []]
           }
         )
       }
@@ -95,6 +112,7 @@ export class UserComponent extends EntityComponent<User> {
   }
 
   updateForm(entity: User) {
+    this.selectedRole = entity && entity.additionalInfo && entity.additionalInfo.role ? entity.additionalInfo.role : null;
     this.entityForm.patchValue({email: entity.email});
     this.entityForm.patchValue({firstName: entity.firstName});
     this.entityForm.patchValue({lastName: entity.lastName});
@@ -109,6 +127,10 @@ export class UserComponent extends EntityComponent<User> {
     this.entityForm.patchValue({additionalInfo:
         {homeDashboardHideToolbar: entity.additionalInfo &&
           isDefinedAndNotNull(entity.additionalInfo.homeDashboardHideToolbar) ? entity.additionalInfo.homeDashboardHideToolbar : true}});
+    this.entityForm.patchValue({additionalInfo:
+        {assignedDashboardIds: entity.additionalInfo ? entity.additionalInfo.assignedDashboardIds : []}});
+    this.entityForm.patchValue({additionalInfo:
+        {role: entity.additionalInfo ? entity.additionalInfo.role : null}});
   }
 
   onUserIdCopied($event) {
@@ -123,4 +145,23 @@ export class UserComponent extends EntityComponent<User> {
     ));
   }
 
+  compareRoles(option: string, value: string): boolean {
+    if (!option || !value) {
+      return false;
+    }
+    return option.toLowerCase() === value.toLowerCase();
+  }
+
+  onRoleChanged(event: MatSelectChange): void {
+    this.selectedRole = event.value;
+    console.log('Selected role:', this.selectedRole);
+    // Reset the entity list so any previous selections are cleared.
+    if (this.tbEntityList) {
+      this.tbEntityList.reset();
+    }
+  }
+
+  protected readonly Authority = Authority;
+  protected readonly UserRole = UserRole;
+  protected readonly entityType = EntityType;
 }

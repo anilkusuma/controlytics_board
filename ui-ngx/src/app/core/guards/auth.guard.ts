@@ -84,7 +84,7 @@ export class AuthGuard implements CanActivate, CanActivateChild {
             this.authService.reloadUser();
             return of(false);
           } else if (!isPublic) {
-            this.authService.redirectUrl = url;
+            // this.authService.redirectUrl = url;
             // this.authService.gotoDefaultPlace(false);
             return of(this.authService.defaultUrl(false));
           } else {

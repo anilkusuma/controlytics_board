@@ -15,7 +15,7 @@
     limitations under the License.
 
 -->
-<div class="tb-details-buttons" fxLayout.xs="column">
+<div class="tb-details-buttons" fxLayout.xs="column" *ngIf="!isMaintenanceUser()">
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'open')"
@@ -79,7 +79,7 @@
 <div class="mat-padding" fxLayout="column">
   <mat-form-field class="mat-block"
                   [fxShow]="!isEdit && assignedCustomersText?.length
-                              && dashboardScope === 'tenant'">
+                              && dashboardScope === 'tenant' && !isMaintenanceUser()">
     <mat-label translate>dashboard.assignedToCustomers</mat-label>
     <input matInput disabled [ngModel]="assignedCustomersText">
   </mat-form-field>
@@ -117,6 +117,23 @@
         <mat-error *ngIf="entityForm.get('title').hasError('maxlength')">
           {{ 'dashboard.title-max-length' | translate }}
         </mat-error>
+      </mat-form-field>
+      <mat-form-field class="mat-block">
+        <mat-label translate>user.role</mat-label>
+        <mat-select formControlName="dashboardType" [compareWith]="compareRoles" (selectionChange)="onRoleChanged($event)">
+          <mat-option [value]="UserRole.ADMIN">
+            {{ 'user.role-admin' | translate }}
+          </mat-option>
+          <mat-option [value]="UserRole.MAINTENANCE">
+            {{ 'user.role-maintenance' | translate }}
+          </mat-option>
+          <mat-option [value]="UserRole.SUPERVISOR">
+            {{ 'user.role-supervisor' | translate }}
+          </mat-option>
+          <mat-option [value]="UserRole.OPERATOR">
+            {{ 'user.role-operator' | translate }}
+          </mat-option>
+        </mat-select>
       </mat-form-field>
       <div formGroupName="configuration" fxLayout="column">
         <mat-form-field class="mat-block">

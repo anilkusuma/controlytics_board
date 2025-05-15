@@ -14,38 +14,38 @@
 /// limitations under the License.
 ///
 
-import { Injectable, NgZone } from '@angular/core';
-import { JwtHelperService } from '@auth0/angular-jwt';
-import { HttpClient } from '@angular/common/http';
+import {Injectable, NgZone} from '@angular/core';
+import {JwtHelperService} from '@auth0/angular-jwt';
+import {HttpClient, HttpErrorResponse, HttpResponse} from '@angular/common/http';
 
-import { Observable, of, ReplaySubject, throwError } from 'rxjs';
-import { catchError, map, mergeMap, tap } from 'rxjs/operators';
+import {Observable, of, ReplaySubject, throwError} from 'rxjs';
+import {catchError, map, mergeMap, tap} from 'rxjs/operators';
 
-import { LoginRequest, LoginResponse, PublicLoginRequest } from '@shared/models/login.models';
-import { Router, UrlTree } from '@angular/router';
-import { defaultHttpOptions, defaultHttpOptionsFromConfig, RequestConfig } from '../http/http-utils';
-import { UserService } from '../http/user.service';
-import { Store } from '@ngrx/store';
-import { AppState } from '../core.state';
+import {LoginRequest, LoginResponse, PublicLoginRequest} from '@shared/models/login.models';
+import {Router, UrlTree} from '@angular/router';
+import {defaultHttpOptions, defaultHttpOptionsFromConfig, RequestConfig} from '../http/http-utils';
+import {UserService} from '../http/user.service';
+import {Store} from '@ngrx/store';
+import {AppState} from '../core.state';
 import {
   ActionAuthAuthenticated,
   ActionAuthLoadUser,
   ActionAuthUnauthenticated,
   ActionAuthUpdateAuthUser
 } from './auth.actions';
-import { getCurrentAuthState, getCurrentAuthUser } from './auth.selectors';
-import { Authority } from '@shared/models/authority.enum';
-import { AuthPayload, AuthState, SysParams, SysParamsState } from '@core/auth/auth.models';
-import { TranslateService } from '@ngx-translate/core';
-import { AuthUser } from '@shared/models/user.model';
-import { TimeService } from '@core/services/time.service';
-import { UtilsService } from '@core/services/utils.service';
-import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
-import { AlertDialogComponent } from '@shared/components/dialog/alert-dialog.component';
-import { OAuth2ClientInfo, PlatformType } from '@shared/models/oauth2.models';
-import { isMobileApp } from '@core/utils';
-import { TwoFactorAuthProviderType, TwoFaProviderInfo } from '@shared/models/two-factor-auth.models';
-import { UserPasswordPolicy } from '@shared/models/settings.models';
+import {getCurrentAuthState, getCurrentAuthUser} from './auth.selectors';
+import {Authority} from '@shared/models/authority.enum';
+import {AuthPayload, AuthState, SysParams, SysParamsState} from '@core/auth/auth.models';
+import {TranslateService} from '@ngx-translate/core';
+import {AuthUser, UserRole} from '@shared/models/user.model';
+import {TimeService} from '@core/services/time.service';
+import {UtilsService} from '@core/services/utils.service';
+import {MatDialog, MatDialogConfig} from '@angular/material/dialog';
+import {AlertDialogComponent} from '@shared/components/dialog/alert-dialog.component';
+import {OAuth2ClientInfo, PlatformType} from '@shared/models/oauth2.models';
+import {isMobileApp} from '@core/utils';
+import {TwoFactorAuthProviderType, TwoFaProviderInfo} from '@shared/models/two-factor-auth.models';
+import {UserPasswordPolicy} from '@shared/models/settings.models';
 
 @Injectable({
     providedIn: 'root'
@@ -63,6 +63,13 @@ export class AuthService {
     private translate: TranslateService,
     private dialog: MatDialog
   ) {
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'local_jwt_token' && (!event.newValue || event.newValue !== AuthService.getJwtToken())) {
+        console.log('Logged out from another tab. Reloading!');
+        this.clearJwtToken();
+        window.location.reload();
+      }
+    });
   }
 
   redirectUrl: string;
@@ -73,7 +80,7 @@ export class AuthService {
   private jwtHelper = new JwtHelperService();
 
   private static _storeGet(key) {
-    return localStorage.getItem(key);
+    return sessionStorage.getItem(key);
   }
 
   private static isTokenValid(prefix) {
@@ -86,10 +93,12 @@ export class AuthService {
   }
 
   private static clearTokenData() {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('jwt_token_expiration');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('refresh_token_expiration');
+    localStorage.removeItem('local_jwt_token');
+    localStorage.removeItem('local_refresh_token');
+    sessionStorage.removeItem('jwt_token');
+    sessionStorage.removeItem('jwt_token_expiration');
+    sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('refresh_token_expiration');
   }
 
   public static getJwtToken() {
@@ -111,14 +120,35 @@ export class AuthService {
 
 
   public login(loginRequest: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>('/api/auth/login', loginRequest, defaultHttpOptions()).pipe(
-      tap((loginResponse: LoginResponse) => {
-          this.setUserFromJwtToken(loginResponse.token, loginResponse.refreshToken, true);
-          if (loginResponse.scope === Authority.PRE_VERIFICATION_TOKEN) {
+    return this.http.post<LoginResponse>('/api/auth/login', loginRequest, {
+      ...defaultHttpOptions(),
+      observe: 'response' // Get full response to check status and headers
+    }).pipe(map((response: HttpResponse<LoginResponse>)=> {
+        if (response.body && response.body.token && response.body.refreshToken) {
+          this.setUserFromJwtToken(response.body.token, response.body.refreshToken, true);
+          if (response.body.scope === Authority.PRE_VERIFICATION_TOKEN) {
             this.router.navigateByUrl(`login/mfa`);
           }
         }
-      ));
+        return response.body;
+      }),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          console.log(error);
+          const redirectUrl = error?.error?.resetToken; // Extract the redirect URL
+          if (redirectUrl) {
+            console.log('Redirecting to:', redirectUrl);
+            window.location.href = redirectUrl; // Perform client-side redirection
+            return of({
+              token: '',
+              refreshToken: '',
+              scope: Authority.TENANT_ADMIN
+            } as LoginResponse);// Prevent further processing of the error
+          }
+        }
+        // return throwError(() => error); // Rethrow the error so parent method can catch it if needed
+      })
+    );
   }
 
   public relogin(loginRequest: LoginRequest): Observable<LoginResponse> {
@@ -197,7 +227,8 @@ export class AuthService {
 
   public logout(captureLastUrl: boolean = false, ignoreRequest = false) {
     if (captureLastUrl) {
-      this.redirectUrl = this.router.url;
+      //TODO: Anil - Not capturing last url, to start with default home url
+      //this.redirectUrl = this.router.url;
     }
     if (!ignoreRequest) {
       this.http.post('/api/auth/logout', null, defaultHttpOptions(true, true))
@@ -282,7 +313,8 @@ export class AuthService {
         } else {
           result = this.router.parseUrl('home');
         }
-        if (authState.authUser.authority === Authority.TENANT_ADMIN || authState.authUser.authority === Authority.CUSTOMER_USER) {
+        if (authState.authUser.authority === Authority.TENANT_ADMIN
+          && authState.userDetails.additionalInfo || authState.authUser.authority === Authority.CUSTOMER_USER) {
           if (this.userHasDefaultDashboard(authState)) {
             const dashboardId = authState.userDetails.additionalInfo.defaultDashboardId;
             if (authState.forceFullscreen) {
@@ -293,6 +325,11 @@ export class AuthService {
           } else if (authState.authUser.isPublic) {
             result = this.router.parseUrl(`dashboard/${authState.lastPublicDashboardId}`);
           }
+        }
+        const userRole: UserRole = authState.userDetails.additionalInfo?.role;
+        if (userRole === UserRole.SUPERVISOR ||
+          userRole === UserRole.OPERATOR || userRole === UserRole.MAINTENANCE) {
+          result = this.router.parseUrl('dashboards');
         }
       }
     } else {
@@ -332,8 +369,8 @@ export class AuthService {
           if (refreshToken) {
             this.updateAndValidateToken(refreshToken, 'refresh_token', false);
           } else {
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('refresh_token_expiration');
+            sessionStorage.removeItem('refresh_token');
+            sessionStorage.removeItem('refresh_token_expiration');
           }
         } catch (e) {
           return throwError(e);
@@ -611,8 +648,9 @@ export class AuthService {
       const ttl = expTime - issuedAt;
       if (ttl > 0) {
         const clientExpiration = new Date().valueOf() + ttl * 1000;
-        localStorage.setItem(prefix, token);
-        localStorage.setItem(prefix + '_expiration', '' + clientExpiration);
+        sessionStorage.setItem(prefix, token);
+        localStorage.setItem('local_' + prefix, token);
+        sessionStorage.setItem(prefix + '_expiration', '' + clientExpiration);
         valid = true;
       }
     }

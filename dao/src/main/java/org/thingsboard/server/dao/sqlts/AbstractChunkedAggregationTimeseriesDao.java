@@ -198,7 +198,7 @@ public abstract class AbstractChunkedAggregationTimeseriesDao extends AbstractSq
     }
 
 
-    private ReadTsKvQueryResult getClosestAggregation(final ReadTsKvQuery query, final EntityId entityId) {
+    private ReadTsKvQueryResult  getClosestAggregation(final ReadTsKvQuery query, final EntityId entityId) {
         Integer keyId = keyDictionaryDao.getOrSaveKeyId(query.getKey());
         final ReadTsKvQueryResult queryResult = findAllAsyncWithLimit(entityId, query);
 

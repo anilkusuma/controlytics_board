@@ -108,7 +108,9 @@ export class GlobalHttpInterceptor implements HttpInterceptor {
       if (errorResponse.error && errorResponse.error.refreshTokenPending ||
           errorCode && errorCode === Constants.serverErrorCode.jwtTokenExpired) {
           return this.refreshTokenAndRetry(req, next);
-      } else if (errorCode !== Constants.serverErrorCode.credentialsExpired) {
+      } else if (errorCode !== Constants.serverErrorCode.credentialsExpired
+          || errorCode !== Constants.serverErrorCode.resetPasswordRequired
+          || errorCode !== Constants.serverErrorCode.createPasswordRequired) {
         unhandled = true;
       }
     } else if (errorResponse.status === 429) {
@@ -133,6 +135,7 @@ export class GlobalHttpInterceptor implements HttpInterceptor {
     }
 
     if (unhandled && !ignoreErrors) {
+      console.error('Unhandled error: ' + req.method + ': ' + req.url);
       const errorMessageWithTimeout = parseHttpErrorMessage(errorResponse, this.translate, req.responseType);
       this.showError(errorMessageWithTimeout.message, errorMessageWithTimeout.timeout);
     }

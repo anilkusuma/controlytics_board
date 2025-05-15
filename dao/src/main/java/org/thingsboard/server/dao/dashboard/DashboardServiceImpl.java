@@ -285,7 +285,9 @@ public class DashboardServiceImpl extends AbstractEntityService implements Dashb
         Validator.validateId(tenantId, id -> INCORRECT_TENANT_ID + id);
         Validator.validateId(customerId, id -> "Incorrect customerId " + id);
         Validator.validatePageLink(pageLink);
-        return dashboardInfoDao.findDashboardsByTenantIdAndCustomerId(tenantId.getId(), customerId.getId(), pageLink);
+        return dashboardInfoDao.findDashboardsByTenantIdAndCustomerId(tenantId.getId(),
+                customerId.getId(),
+                pageLink);
     }
 
     @Override

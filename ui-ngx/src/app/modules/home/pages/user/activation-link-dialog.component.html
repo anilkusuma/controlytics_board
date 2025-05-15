@@ -17,7 +17,7 @@
 -->
 <form style="min-width: 400px; position: relative;">
   <mat-toolbar color="primary">
-    <h2 translate>user.activation-link</h2>
+    <h2 translate>{{ isTemporaryPassword ? 'user.temporary-password' : 'user.activation-link' }}</h2>
     <span fxFlex></span>
     <button mat-icon-button
             (click)="close()"
@@ -30,7 +30,10 @@
   <div style="height: 4px;" *ngIf="!(isLoading$ | async)"></div>
   <div mat-dialog-content tb-toast toastTarget="activationLinkDialogContent">
     <div class="mat-content" fxLayout="column">
-      <span [innerHTML]="'user.activation-link-text' | translate: {activationLink: activationLink}"></span>
+      <span [innerHTML]="'user.activation-link-text' | translate: {activationLink: activationLink}"
+            *ngIf="!(isTemporaryPassword ?? false)"></span>
+      <span [innerHTML]="'user.temporary-password-text' | translate: {activationLink: activationLink}"
+            *ngIf="(isTemporaryPassword ?? false)"></span>
       <div fxLayout="row" fxLayoutAlign="start center">
         <pre class="tb-highlight" fxFlex><code>{{ activationLink }}</code></pre>
         <button mat-icon-button
@@ -38,7 +41,8 @@
                 ngxClipboard
                 cbContent="{{ activationLink }}"
                 (cbOnSuccess)="onActivationLinkCopied()"
-                matTooltip="{{ 'user.copy-activation-link' | translate }}"
+                matTooltip="{{ isTemporaryPassword ? 'user.copy-temporary-password' : 'user.copy-activation-link' |
+                translate }}"
                 matTooltipPosition="above">
           <mat-icon svgIcon="mdi:clipboard-arrow-left"></mat-icon>
         </button>

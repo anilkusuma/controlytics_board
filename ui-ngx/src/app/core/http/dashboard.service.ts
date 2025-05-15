@@ -24,6 +24,10 @@ import { Dashboard, DashboardInfo, HomeDashboard, HomeDashboardInfo } from '@sha
 import { WINDOW } from '@core/services/window.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, publishReplay, refCount } from 'rxjs/operators';
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
+import {Store} from "@ngrx/store";
+import {AppState} from "@core/core.state";
+import {UserRole} from "@shared/models/user.model";
 
 // @dynamic
 @Injectable({
@@ -35,6 +39,7 @@ export class DashboardService {
   currentUrl: string;
 
   constructor(
+    private store: Store<AppState>,
     private http: HttpClient,
     private router: Router,
     @Inject(WINDOW) private window: Window
@@ -52,8 +57,25 @@ export class DashboardService {
   }
 
   public getTenantDashboards(pageLink: PageLink, config?: RequestConfig): Observable<PageData<DashboardInfo>> {
+    const authState = getCurrentAuthState(this.store);
     return this.http.get<PageData<DashboardInfo>>(`/api/tenant/dashboards${pageLink.toQuery()}`,
-      defaultHttpOptionsFromConfig(config));
+      defaultHttpOptionsFromConfig(config)).pipe(
+      map(pageData => {
+        if (authState.userDetails.additionalInfo.role === UserRole.MAINTENANCE) {
+          const assignedIds = authState.userDetails.additionalInfo.assignedDashboardIds ?? [];
+          const filteredDashboards = pageData.data.filter(dashboard =>
+            assignedIds.includes(dashboard.id.id)
+          );
+          return {
+            ...pageData,
+            data: filteredDashboards,
+            totalElements: filteredDashboards.length,
+            totalPages: Math.ceil(filteredDashboards.length / pageLink.pageSize)
+          };
+        }
+        return pageData;
+      })
+    );
   }
 
   public getTenantDashboardsByTenantId(tenantId: string, pageLink: PageLink,
@@ -63,8 +85,22 @@ export class DashboardService {
   }
 
   public getCustomerDashboards(customerId: string, pageLink: PageLink, config?: RequestConfig): Observable<PageData<DashboardInfo>> {
+    const authState = getCurrentAuthState(this.store);
     return this.http.get<PageData<DashboardInfo>>(`/api/customer/${customerId}/dashboards${pageLink.toQuery()}`,
-      defaultHttpOptionsFromConfig(config));
+      defaultHttpOptionsFromConfig(config)).pipe(
+      map(pageData => {
+        const assignedIds = authState.userDetails.additionalInfo.assignedDashboardIds ?? [];
+        const filteredDashboards = pageData.data.filter(dashboard =>
+          assignedIds.includes(dashboard.id.id)
+        );
+        return {
+          ...pageData,
+          data: filteredDashboards,
+          totalElements: filteredDashboards.length,
+          totalPages: Math.ceil(filteredDashboards.length / pageLink.pageSize)
+        };
+      })
+    );
   }
 
   public getDashboard(dashboardId: string, config?: RequestConfig): Observable<Dashboard> {

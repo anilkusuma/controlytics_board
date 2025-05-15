@@ -32,6 +32,7 @@ export interface DashboardInfo extends BaseData<DashboardId>, HasTenantId, Expor
   assignedCustomers?: Array<ShortCustomerInfo>;
   mobileHide?: boolean;
   mobileOrder?: number;
+  dashboardType?: string;
 }
 
 export interface WidgetLayout {

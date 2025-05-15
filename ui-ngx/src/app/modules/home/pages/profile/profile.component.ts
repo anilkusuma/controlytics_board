@@ -63,8 +63,8 @@ export class ProfileComponent extends PageComponent implements OnInit, HasConfir
   private buildProfileForm() {
     this.profile = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      firstName: [''],
-      lastName: [''],
+      firstName: [{value: '', disabled: true}],
+      lastName: [{value: '', disabled: true}],
       phone: [''],
       language: [''],
       homeDashboardId: [null],

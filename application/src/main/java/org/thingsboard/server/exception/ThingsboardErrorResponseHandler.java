@@ -15,6 +15,7 @@
  */
 package org.thingsboard.server.exception;
 
+import com.amazonaws.util.json.Jackson;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,6 +51,7 @@ import org.thingsboard.server.common.msg.tools.TbRateLimitsException;
 import org.thingsboard.server.service.security.exception.*;
 
 import java.io.IOException;
+import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -215,11 +217,21 @@ public class ThingsboardErrorResponseHandler extends ResponseEntityExceptionHand
         } else if (authenticationException instanceof ResetPasswordException resetPasswordException) {
             try {
                 final String resetLink = new URI(resetPasswordException.getResetPasswordLink()).toString();
-                response.setStatus(HttpServletResponse.SC_SEE_OTHER);
-                response.setHeader("Location", resetLink);
+                JacksonUtil.writeValue(response.getWriter(), ThingsboardPasswordResetRequiredResponse.of("Password reset required",
+                        resetLink));
             } catch (URISyntaxException e) {
                 log.error("Failed to redirect to reset password link", e);
                 JacksonUtil.writeValue(response.getWriter(), ThingsboardCredentialsViolationResponse.of(resetPasswordException.getMessage()));
+            }
+        } else if (authenticationException instanceof PendingActivationException pendingActivationException) {
+            try {
+                final String resetLink = new URI(pendingActivationException.getActivationLink()).toString();
+                JacksonUtil.writeValue(response.getWriter(), ThingsboardAccountActivateRequiredResponse.of("Account is not activated",
+                        resetLink));
+            } catch (URISyntaxException e) {
+                log.error("Failed to redirect to create password link", e);
+                JacksonUtil.writeValue(response.getWriter(),
+                        ThingsboardCredentialsViolationResponse.of(pendingActivationException.getMessage()));
             }
         } else if (authenticationException instanceof UserPasswordNotValidException expiredException) {
             JacksonUtil.writeValue(response.getWriter(), ThingsboardCredentialsViolationResponse.of(expiredException.getMessage()));

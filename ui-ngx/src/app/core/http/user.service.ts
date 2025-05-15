@@ -77,8 +77,18 @@ export class UserService {
       {...{responseType: 'text'}, ...defaultHttpOptionsFromConfig(config)});
   }
 
+  public getActivationPassword(userId: string, config?: RequestConfig): Observable<string> {
+    return this.http.get(`/api/user/${userId}/activationPassword`,
+      {...{responseType: 'text'}, ...defaultHttpOptionsFromConfig(config)});
+  }
+
   public getResetPasswordLink(userId: string, config?: RequestConfig): Observable<string> {
     return this.http.get(`/api/user/${userId}/resetPasswordLink`,
+      {...{responseType: 'text'}, ...defaultHttpOptionsFromConfig(config)});
+  }
+
+  public getTemporaryPassword(userId: string, config?: RequestConfig): Observable<string> {
+    return this.http.get(`/api/user/${userId}/temporaryPassword`,
       {...{responseType: 'text'}, ...defaultHttpOptionsFromConfig(config)});
   }
 

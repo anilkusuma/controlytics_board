@@ -144,7 +144,8 @@ public class AuthController extends BaseController {
             @RequestParam(value = "activateToken") String activateToken) {
         HttpHeaders headers = new HttpHeaders();
         HttpStatus responseStatus;
-        UserCredentials userCredentials = userService.findUserCredentialsByActivateToken(TenantId.SYS_TENANT_ID, activateToken);
+        UserCredentials userCredentials = userService.findUserCredentialsByActivateToken(TenantId.SYS_TENANT_ID,
+                new String(Base64.getDecoder().decode(activateToken.getBytes())));
         if (userCredentials != null) {
             String createURI = "/login/createPassword";
             try {
@@ -196,7 +197,8 @@ public class AuthController extends BaseController {
         HttpHeaders headers = new HttpHeaders();
         HttpStatus responseStatus;
         String resetURI = "/login/resetPassword";
-        UserCredentials userCredentials = userService.findUserCredentialsByResetToken(TenantId.SYS_TENANT_ID, resetToken);
+        UserCredentials userCredentials = userService.findUserCredentialsByResetToken(TenantId.SYS_TENANT_ID,
+                new String(Base64.getDecoder().decode(resetToken.getBytes())));
 
         if (userCredentials != null) {
             if (!rateLimitService.checkRateLimit(LimitedApi.PASSWORD_RESET, userCredentials.getUserId(), defaultLimitsConfiguration)) {
@@ -233,7 +235,7 @@ public class AuthController extends BaseController {
             @RequestBody ActivateUserRequest activateRequest,
             @RequestParam(required = false, defaultValue = "true") boolean sendActivationMail,
             HttpServletRequest request) throws ThingsboardException {
-        String activateToken = activateRequest.getActivateToken();
+        String activateToken = new String(Base64.getDecoder().decode(activateRequest.getActivateToken().getBytes()));
         String password = activateRequest.getPassword();
         systemSecurityService.validatePassword(password, null);
         String encodedPassword = passwordEncoder.encode(password);
@@ -270,7 +272,7 @@ public class AuthController extends BaseController {
             @Parameter(description = "Reset password request.")
             @RequestBody ResetPasswordRequest resetPasswordRequest,
             HttpServletRequest request) throws ThingsboardException {
-        String resetToken = resetPasswordRequest.getResetToken();
+        String resetToken = new String(Base64.getDecoder().decode(resetPasswordRequest.getResetToken().getBytes()));
         String password = resetPasswordRequest.getPassword();
         UserCredentials userCredentials = userService.findUserCredentialsByResetToken(TenantId.SYS_TENANT_ID, resetToken);
         if (userCredentials != null) {

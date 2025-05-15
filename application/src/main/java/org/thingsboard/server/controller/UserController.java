@@ -155,16 +155,6 @@ public class UserController extends BaseController {
             processDashboardIdFromAdditionalInfo(additionalInfo, DEFAULT_DASHBOARD);
             processDashboardIdFromAdditionalInfo(additionalInfo, HOME_DASHBOARD);
             UserCredentials userCredentials = userService.findUserCredentialsByUserId(user.getTenantId(), user.getId());
-            try {
-                Optional<AttributeKvEntry> roleOptional = attributesService.find(user.getTenantId(), user.getId(),
-                        AttributeScope.SERVER_SCOPE,
-                        "role").get();
-
-                roleOptional.ifPresent(attributeKvEntry -> additionalInfo.put("role", attributeKvEntry.getValueAsString()));
-
-            } catch (Exception e) {
-                // ignore
-            }
             if (userCredentials.isEnabled() && !additionalInfo.has("userCredentialsEnabled")) {
                 additionalInfo.put("userCredentialsEnabled", true);
             }
@@ -276,6 +266,28 @@ public class UserController extends BaseController {
             String activateUrl = String.format(ACTIVATE_URL_PATTERN, baseUrl,
                     userCredentials.getActivateToken());
             return activateUrl;
+        } else {
+            throw new ThingsboardException("User is already activated!", ThingsboardErrorCode.BAD_REQUEST_PARAMS);
+        }
+    }
+
+    @ApiOperation(value = "Get the activation link (getActivationPassword)",
+            notes = "Get the activation password for the user. " +
+                    SYSTEM_OR_TENANT_AUTHORITY_PARAGRAPH)
+    @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
+    @RequestMapping(value = "/user/{userId}/activationPassword", method = RequestMethod.GET, produces = "text/plain")
+    @ResponseBody
+    public String getActivationPassword(
+            @Parameter(description = USER_ID_PARAM_DESCRIPTION)
+            @PathVariable(USER_ID) String strUserId,
+            HttpServletRequest request) throws ThingsboardException {
+        checkParameter(USER_ID, strUserId);
+        UserId userId = new UserId(toUUID(strUserId));
+        User user = checkUserId(userId, Operation.READ);
+        SecurityUser authUser = getCurrentUser();
+        UserCredentials userCredentials = userService.findUserCredentialsByUserId(authUser.getTenantId(), user.getId());
+        if (!userCredentials.isEnabled() && userCredentials.getActivateToken() != null) {
+            return userCredentials.getActivateToken();
         } else {
             throw new ThingsboardException("User is already activated!", ThingsboardErrorCode.BAD_REQUEST_PARAMS);
         }
@@ -413,7 +425,7 @@ public class UserController extends BaseController {
 
     @ApiOperation(value = "Get Tenant Users (getTenantAdmins)",
             notes = "Returns a page of users owned by tenant. " + PAGE_DATA_PARAMETERS + SYSTEM_AUTHORITY_PARAGRAPH)
-    @PreAuthorize("hasAuthority('SYS_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SYS_ADMIN', 'TENANT_ADMIN')")
     @RequestMapping(value = "/tenant/{tenantId}/users", params = {"pageSize", "page"}, method = RequestMethod.GET)
     @ResponseBody
     public PageData<User> getTenantAdmins(

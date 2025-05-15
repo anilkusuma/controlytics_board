@@ -68,7 +68,7 @@ import {
 } from './dashboard-page.models';
 import { BreakpointObserver, BreakpointState } from '@angular/cdk/layout';
 import { MediaBreakpoints } from '@shared/models/constants';
-import { AuthUser } from '@shared/models/user.model';
+import {AuthUser, UserRole} from '@shared/models/user.model';
 import {getCurrentAuthState, getCurrentAuthUser} from '@core/auth/auth.selectors';
 import {
   Widget,
@@ -466,7 +466,9 @@ export class DashboardPageComponent extends PageComponent implements IDashboardC
 
     this.readonly = this.embedded || (this.singlePageMode && !this.widgetEditMode && !this.route.snapshot.queryParamMap.get('edit'))
                     || this.forceFullscreen || this.isMobileApp || this.authUser.authority === Authority.CUSTOMER_USER ||
-                    this.route.snapshot.queryParamMap.get('readonly') === 'true';
+                    this.route.snapshot.queryParamMap.get('readonly') === 'true'
+      || this.authState.userDetails.additionalInfo?.role === UserRole.MAINTENANCE
+      || this.authState.userDetails.additionalInfo?.role === UserRole.ADMIN;
 
     this.dashboardCtx.aliasController = this.parentAliasController ? this.parentAliasController : new AliasController(this.utils,
       this.entityService,
@@ -614,7 +616,7 @@ export class DashboardPageComponent extends PageComponent implements IDashboardC
   }
 
   public displayExport(): boolean {
-    if (this.getCurrentAuthUser(this.store).authority === Authority.CUSTOMER_USER) {
+    if (this.getCurrentAuthUser(this.store)?.authority === Authority.CUSTOMER_USER) {
       return false;
     }
     if (this.dashboard.configuration.settings &&
@@ -644,9 +646,6 @@ export class DashboardPageComponent extends PageComponent implements IDashboardC
   }
 
   public displayDashboardsSelect(): boolean {
-    if (this.getCurrentAuthUser(this.store).authority === Authority.CUSTOMER_USER) {
-      return false;
-    }
     if (this.dashboard.configuration.settings &&
       isDefined(this.dashboard.configuration.settings.showDashboardsSelect)) {
       return this.dashboard.configuration.settings.showDashboardsSelect;

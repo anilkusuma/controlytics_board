@@ -45,6 +45,7 @@ import org.thingsboard.server.dao.user.UserService;
 import org.thingsboard.server.queue.util.TbCoreComponent;
 import org.thingsboard.server.service.security.auth.MfaAuthenticationToken;
 import org.thingsboard.server.service.security.auth.mfa.TwoFactorAuthService;
+import org.thingsboard.server.service.security.exception.PendingActivationException;
 import org.thingsboard.server.service.security.exception.ResetPasswordException;
 import org.thingsboard.server.service.security.exception.UserPasswordNotValidException;
 import org.thingsboard.server.service.security.model.SecurityUser;
@@ -137,7 +138,19 @@ public class RestAuthenticationProvider implements AuthenticationProvider {
             if (userCredentialsByResetToken != null
                     && userCredentialsByResetToken.getUserId().equals(user.getId())) {
                 throw new ResetPasswordException("User password reset is required", password,
-                        "/login/resetPassword?resetToken="+ password + "&userId=" +  Base64.getEncoder()
+                        "/login/resetPassword?resetToken="+ Base64.getEncoder().encodeToString(password.getBytes()) +
+                                "&userId=" +  Base64.getEncoder()
+                                .encodeToString(user.getEmail().getBytes()));
+            }
+
+            final UserCredentials userCredentialsByActivateToken =
+                    userService.findUserCredentialsByActivateToken(TenantId.SYS_TENANT_ID,
+                            password);
+            if (userCredentialsByActivateToken != null
+                    && userCredentialsByActivateToken.getUserId().equals(user.getId())) {
+                throw new PendingActivationException("User password activation is required", password,
+                        "/login/createPassword?activateToken="+ Base64.getEncoder().encodeToString(password.getBytes()) +
+                                "&userId=" +  Base64.getEncoder()
                                 .encodeToString(user.getEmail().getBytes()));
             }
 

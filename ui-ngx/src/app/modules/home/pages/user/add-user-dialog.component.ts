@@ -21,7 +21,7 @@ import { AppState } from '@core/core.state';
 import { UntypedFormGroup } from '@angular/forms';
 import { UserComponent } from '@modules/home/pages/user/user.component';
 import { Authority } from '@shared/models/authority.enum';
-import { ActivationMethod, activationMethodTranslations, User } from '@shared/models/user.model';
+import {ActivationMethod, activationMethodTranslations, User, UserRole} from '@shared/models/user.model';
 import { CustomerId } from '@shared/models/id/customer-id';
 import { UserService } from '@core/http/user.service';
 import { Observable } from 'rxjs';
@@ -49,7 +49,7 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
   detailsForm: UntypedFormGroup;
   user: User;
 
-  activationMethods = [ActivationMethod.DISPLAY_ACTIVATION_LINK];
+  activationMethods = [ActivationMethod.DISPLAY_TEMPORARY_PASSWORD];
   activationMethodEnum = ActivationMethod;
 
   activationMethodTranslations = activationMethodTranslations;
@@ -81,9 +81,15 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
   add(): void {
     if (this.detailsForm.valid) {
       this.user = {...this.user, ...this.userComponent.entityForm.value};
-      this.user.authority = this.data.authority;
       this.user.tenantId = new TenantId(this.data.tenantId);
-      this.user.customerId = new CustomerId(this.data.customerId);
+      if (this.user.additionalInfo.role === UserRole.ADMIN
+        || this.user.additionalInfo.role === UserRole.MAINTENANCE) {
+        this.user.authority = Authority.TENANT_ADMIN;
+        this.user.customerId = undefined;
+      } else {
+        this.user.authority = this.data.authority;
+        this.user.customerId = new CustomerId(this.data.customerId);
+      }
       const sendActivationEmail = this.activationMethod === ActivationMethod.SEND_ACTIVATION_MAIL;
       this.userService.saveUser(this.user, sendActivationEmail).subscribe(
         (user) => {
@@ -91,6 +97,16 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
             this.userService.getActivationLink(user.id.id).subscribe(
               (activationLink) => {
                 this.displayActivationLink(activationLink).subscribe(
+                  () => {
+                    this.dialogRef.close(user);
+                  }
+                );
+              }
+            );
+          } else if (this.activationMethod === ActivationMethod.DISPLAY_TEMPORARY_PASSWORD) {
+            this.userService.getActivationPassword(user.id.id).subscribe(
+              (activationPassword) => {
+                this.displayActivationPassword(activationPassword).subscribe(
                   () => {
                     this.dialogRef.close(user);
                   }
@@ -105,13 +121,25 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
     }
   }
 
+  displayActivationPassword(activationLink: string): Observable<void> {
+    return this.dialog.open<ActivationLinkDialogComponent, ActivationLinkDialogData,
+      void>(ActivationLinkDialogComponent, {
+      disableClose: true,
+      panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
+      data: {
+        activationLink,
+        isTemporaryPassword: true
+      }
+    }).afterClosed();
+  }
+
   displayActivationLink(activationLink: string): Observable<void> {
     return this.dialog.open<ActivationLinkDialogComponent, ActivationLinkDialogData,
       void>(ActivationLinkDialogComponent, {
       disableClose: true,
       panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
       data: {
-        activationLink
+        activationLink,
       }
     }).afterClosed();
   }

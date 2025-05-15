@@ -33,7 +33,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { Authority } from '@shared/models/authority.enum';
 import { Tenant } from '@shared/models/tenant.model';
-import { catchError, concatMap, expand, map, mergeMap, toArray } from 'rxjs/operators';
+import {catchError, concatMap, expand, filter, map, mergeMap, toArray} from 'rxjs/operators';
 import { Customer } from '@app/shared/models/customer.model';
 import { AssetService } from '@core/http/asset.service';
 import { EntityViewService } from '@core/http/entity-view.service';
@@ -96,6 +96,7 @@ import { NotificationType } from '@shared/models/notification.models';
 import { UserId } from '@shared/models/id/user-id';
 import { AlarmService } from '@core/http/alarm.service';
 import { ResourceService } from '@core/http/resource.service';
+import {DashboardInfo} from "@shared/models/dashboard.models";
 
 @Injectable({
   providedIn: 'root'
@@ -396,11 +397,19 @@ export class EntityService {
         break;
       case EntityType.DASHBOARD:
         pageLink.sortOrder.property = 'title';
+        let dashboards: Observable<PageData<DashboardInfo>>;
         if (authUser.authority === Authority.CUSTOMER_USER) {
-          entitiesObservable = this.dashboardService.getCustomerDashboards(customerId, pageLink, config);
+          dashboards = this.dashboardService.getCustomerDashboards(customerId, pageLink, config);
         } else {
-          entitiesObservable = this.dashboardService.getTenantDashboards(pageLink, config);
+          dashboards = this.dashboardService.getTenantDashboards(pageLink, config);
         }
+        dashboards = dashboards.pipe(
+          map((pageData) => ({
+            ...pageData,
+            data: subType ? pageData.data.filter(dashboard => dashboard.dashboardType === subType) : pageData.data
+          })),
+        );
+        entitiesObservable = dashboards;
         break;
       case EntityType.USER:
         pageLink.sortOrder.property = 'email';

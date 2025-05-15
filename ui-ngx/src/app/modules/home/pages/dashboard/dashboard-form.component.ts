@@ -31,6 +31,10 @@ import { DashboardService } from '@core/http/dashboard.service';
 import { EntityTableConfig } from '@home/models/entity/entities-table-config.models';
 import { isEqual } from '@core/utils';
 import { EntityType } from '@shared/models/entity-type.models';
+import {UserRole} from "@shared/models/user.model";
+import {Authority} from "@shared/models/authority.enum";
+import {MatSelectChange} from "@angular/material/select";
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
 
 @Component({
   selector: 'tb-dashboard-form',
@@ -45,6 +49,8 @@ export class DashboardFormComponent extends EntityComponent<Dashboard> {
   publicLink: string;
   assignedCustomersText: string;
   entityType = EntityType;
+  selectedRole = '';
+  userRole: UserRole;
 
   constructor(protected store: Store<AppState>,
               protected translate: TranslateService,
@@ -54,6 +60,7 @@ export class DashboardFormComponent extends EntityComponent<Dashboard> {
               public fb: UntypedFormBuilder,
               protected cd: ChangeDetectorRef) {
     super(store, fb, entityValue, entitiesTableConfigValue, cd);
+    this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
   }
 
   ngOnInit() {
@@ -86,6 +93,7 @@ export class DashboardFormComponent extends EntityComponent<Dashboard> {
         image: [entity ? entity.image : null],
         mobileHide: [entity ? entity.mobileHide : false],
         mobileOrder: [entity ? entity.mobileOrder : null, [Validators.pattern(/^-?[0-9]+$/)]],
+        dashboardType: [entity ? entity.dashboardType : null],
         configuration: this.fb.group(
           {
             description: [entity && entity.configuration ? entity.configuration.description : ''],
@@ -106,6 +114,7 @@ export class DashboardFormComponent extends EntityComponent<Dashboard> {
     this.entityForm.patchValue({image: entity.image});
     this.entityForm.patchValue({mobileHide: entity.mobileHide});
     this.entityForm.patchValue({mobileOrder: entity.mobileOrder});
+    this.entityForm.patchValue({dashboardType: entity.dashboardType});
     this.entityForm.patchValue({configuration: {description: entity.configuration ? entity.configuration.description : ''}});
   }
 
@@ -143,4 +152,23 @@ export class DashboardFormComponent extends EntityComponent<Dashboard> {
       this.publicLink = this.dashboardService.getPublicDashboardLink(entity);
     }
   }
+
+  compareRoles(option: string, value: string): boolean {
+    if (!option || !value) {
+      return false;
+    }
+    return option.toLowerCase() === value.toLowerCase();
+  }
+
+  isMaintenanceUser(): boolean {
+    return this.userRole === UserRole.MAINTENANCE;
+  }
+
+  onRoleChanged(event: MatSelectChange): void {
+    this.selectedRole = event.value;
+  }
+
+  protected readonly UserRole = UserRole;
+  protected readonly Authority = Authority;
+  protected readonly isPublicDashboard = isPublicDashboard;
 }

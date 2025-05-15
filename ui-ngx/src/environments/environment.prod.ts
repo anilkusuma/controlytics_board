@@ -15,7 +15,7 @@
 ///
 
 export const environment = {
-  appTitle: 'Optimize AI',
+  appTitle: 'TRH-Monitoring',
   production: true,
 // @ts-ignore
   tbVersion: TB_VERSION,

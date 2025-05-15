@@ -30,6 +30,8 @@ public enum ThingsboardErrorCode {
     TOO_MANY_REQUESTS(33),
     TOO_MANY_UPDATES(34),
     SUBSCRIPTION_VIOLATION(40),
+    RESET_PASSWORD_VIOLATION(41),
+    CREATE_PASSWORD_VIOLATION(42),
     PASSWORD_VIOLATION(45);
 
     private int errorCode;

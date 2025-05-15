@@ -34,8 +34,10 @@ export class CreatePasswordComponent extends PageComponent implements OnInit, On
 
   activateToken = '';
   sub: Subscription;
+  userId = '';
 
   createPassword = this.fb.group({
+    userId: ['', { disabled: true }],
     password: [''],
     password2: ['']
   });
@@ -53,6 +55,8 @@ export class CreatePasswordComponent extends PageComponent implements OnInit, On
       .queryParams
       .subscribe(params => {
         this.activateToken = params.activateToken || '';
+        this.userId = this.base64Decode(params.userId || '');
+        this.createPassword.get('userId').setValue(this.userId);
       });
   }
 
@@ -69,6 +73,21 @@ export class CreatePasswordComponent extends PageComponent implements OnInit, On
       this.authService.activate(
         this.activateToken,
         this.createPassword.get('password').value, true).subscribe();
+    }
+  }
+
+  private base64Decode(str: string): string {
+    try {
+      // Convert base64 to byte array
+      const binaryStr = window.atob(str || '');
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      // Convert byte array to string using TextDecoder
+      return new TextDecoder().decode(bytes);
+    } catch (e) {
+      return '';
     }
   }
 }

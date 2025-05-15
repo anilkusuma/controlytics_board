@@ -25,6 +25,7 @@ import { Router } from '@angular/router';
 
 export interface ActivationLinkDialogData {
   activationLink: string;
+  isTemporaryPassword?: boolean;
 }
 
 @Component({
@@ -34,6 +35,7 @@ export interface ActivationLinkDialogData {
 export class ActivationLinkDialogComponent extends DialogComponent<ActivationLinkDialogComponent, void> implements OnInit {
 
   activationLink: string;
+  isTemporaryPassword: boolean;
 
   constructor(protected store: Store<AppState>,
               protected router: Router,
@@ -42,6 +44,7 @@ export class ActivationLinkDialogComponent extends DialogComponent<ActivationLin
               private translate: TranslateService) {
     super(store, router, dialogRef);
     this.activationLink = this.data.activationLink;
+    this.isTemporaryPassword = this.data.isTemporaryPassword;
   }
 
   ngOnInit(): void {
@@ -54,7 +57,8 @@ export class ActivationLinkDialogComponent extends DialogComponent<ActivationLin
   onActivationLinkCopied() {
      this.store.dispatch(new ActionNotificationShow(
        {
-         message: this.translate.instant('user.activation-link-copied-message'),
+         message: this.translate.instant(this.data.isTemporaryPassword
+           ? 'user.temporary-password-copied-message' : 'user.activation-link-copied-message'),
          type: 'success',
          target: 'activationLinkDialogContent',
          duration: 1200,

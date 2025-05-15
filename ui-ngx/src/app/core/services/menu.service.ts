@@ -32,7 +32,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { UserService } from '@core/http/user.service';
 import { AttributeService } from '@core/http/attribute.service';
 import {AttributeScope} from '@shared/models/telemetry/telemetry.models';
-import {User} from '@shared/models/user.model';
+import {User, UserRole} from '@shared/models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -68,30 +68,25 @@ export class MenuService {
     this.store.pipe(select(selectUserDetails), take(1)).subscribe(
       (user: User) => {
         if (user.authority) {
-          // this.userService.getUser(authState.authUser.userId).subscribe(
-          return this.attributeService.getEntityAttributes(user.id, AttributeScope.SERVER_SCOPE, ['role'])
-            .subscribe(data => {
-              const role: string = data.find(d => d.key === 'role')?.value;
-              let homeSections: Array<HomeSection>;
-              switch (user.authority) {
-                case Authority.SYS_ADMIN:
-                  this.currentMenuSections = this.buildSysAdminMenu();
-                  homeSections = this.buildSysAdminHome();
-                  break;
-                case Authority.TENANT_ADMIN:
-                  this.currentMenuSections = this.buildTenantAdminMenu(user, role);
-                  homeSections = this.buildTenantAdminHome(user, role);
-                  break;
-                case Authority.CUSTOMER_USER:
-                  this.currentMenuSections = this.buildCustomerUserMenu(user, role);
-                  homeSections = this.buildCustomerUserHome(user, role);
-                  break;
-              }
-              this.updateOpenedMenuSections();
-              this.menuSections$.next(this.currentMenuSections);
-              this.homeSections$.next(homeSections);
-            }
-          );
+          const role: string = user.additionalInfo.role;
+          let homeSections: Array<HomeSection>;
+          switch (user.authority) {
+            case Authority.SYS_ADMIN:
+              this.currentMenuSections = this.buildSysAdminMenu();
+              homeSections = this.buildSysAdminHome();
+              break;
+            case Authority.TENANT_ADMIN:
+              this.currentMenuSections = this.buildTenantAdminMenu(user, role);
+              homeSections = this.buildTenantAdminHome(user, role);
+              break;
+            case Authority.CUSTOMER_USER:
+              this.currentMenuSections = this.buildCustomerUserMenu(user, role);
+              homeSections = this.buildCustomerUserHome(user, role);
+              break;
+          }
+          this.updateOpenedMenuSections();
+          this.menuSections$.next(this.currentMenuSections);
+          this.homeSections$.next(homeSections);
         }
       }
     );
@@ -385,9 +380,9 @@ export class MenuService {
   }
 
   private buildTenantAdminMenu(user: User, role: string): Array<MenuSection> {
-    if (role === 'controlytics_admin') {
+    if (role === UserRole.CONTROLYTICS_ADMIN) {
       return this.buildTenantControlyticsAdminMenu(user, role);
-    } else if (role === 'maintenance') {
+    } else if (role === UserRole.MAINTENANCE) {
       return this.buildTenantGranulesMaintainerMenu(user, role);
     } else {
       return this.buildTenantGranulesAdminMenu(user, role);
@@ -695,6 +690,13 @@ export class MenuService {
             type: 'link',
             path: '/security-settings/auditLogs',
             icon: 'track_changes'
+          },
+          {
+            id: 'security_settings',
+            name: 'admin.security-settings',
+            type: 'link',
+            path: '/security-settings/general',
+            icon: 'settings_applications'
           }
         ]
       }
@@ -706,11 +708,11 @@ export class MenuService {
     const sections: Array<MenuSection> = [];
     sections.push(
       {
-        id: 'home',
+        id: 'dashboards',
         name: 'home.home',
         type: 'link',
-        path: '/home',
-        icon: 'home'
+        path: '/dashboards',
+        icon: 'dashboards'
       },
       {
         id: 'devices',
@@ -730,7 +732,7 @@ export class MenuService {
         id: 'audit_log',
         name: 'audit-log.audit-logs',
         type: 'link',
-        path: '/security-settings/auditLogs',
+        path: '/auditLogs',
         icon: 'track_changes'
       }
     );
@@ -758,8 +760,16 @@ export class MenuService {
         id: 'audit_log',
         name: 'audit-log.audit-logs',
         type: 'link',
-        path: '/security-settings/auditLogs',
+        path: '/auditLogs',
         icon: 'track_changes'
+      },
+      {
+        id: 'security_settings_general',
+        name: 'admin.settings',
+        fullName: 'security.general-settings',
+        type: 'link',
+        path: '/security-settings/general',
+        icon: 'settings_applications'
       }
     );
     return sections;
@@ -834,25 +844,6 @@ export class MenuService {
         ]
       }
     );
-    // if (authState.edgesSupportEnabled) {
-    //   homeSections.push(
-    //     {
-    //       name: 'edge.management',
-    //       places: [
-    //         {
-    //           name: 'edge.edge-instances',
-    //           icon: 'router',
-    //           path: '/edgeInstances'
-    //         },
-    //         {
-    //           name: 'edge.rulechain-templates',
-    //           icon: 'settings_ethernet',
-    //           path: '/edgeManagement/ruleChains'
-    //         }
-    //       ]
-    //     }
-    //   );
-    // }
     homeSections.push(
       {
         name: 'dashboard.management',
@@ -927,69 +918,13 @@ export class MenuService {
     const sections: Array<MenuSection> = [];
     sections.push(
       {
-        id: 'home',
+        id: 'dashboards',
         name: 'home.home',
         type: 'link',
-        path: '/home',
-        icon: 'home'
+        path: '/dashboards',
+        icon: 'dashboards'
       }
-      // {
-      //   id: 'alarms',
-      //   name: 'alarm.alarms',
-      //   type: 'link',
-      //   path: '/alarms',
-      //   icon: 'mdi:alert-outline'
-      // },
-      // {
-      //   id: 'dashboards',
-      //   name: 'dashboard.dashboards',
-      //   type: 'link',
-      //   path: '/dashboards',
-      //   icon: 'dashboards'
-      // },
-      // {
-      //   id: 'entities',
-      //   name: 'entity.entities',
-      //   type: 'toggle',
-      //   path: '/entities',
-      //   icon: 'category',
-      //   pages: [
-      //     {
-      //       id: 'devices',
-      //       name: 'device.devices',
-      //       type: 'link',
-      //       path: '/entities/devices',
-      //       icon: 'devices_other'
-      //     },
-      //     {
-      //       id: 'assets',
-      //       name: 'asset.assets',
-      //       type: 'link',
-      //       path: '/entities/assets',
-      //       icon: 'domain'
-      //     },
-      //     {
-      //       id: 'entity_views',
-      //       name: 'entity-view.entity-views',
-      //       type: 'link',
-      //       path: '/entities/entityViews',
-      //       icon: 'view_quilt'
-      //     }
-      //   ]
-      // }
     );
-    // if (authState.edgesSupportEnabled) {
-    //   sections.push(
-    //     {
-    //       id: 'edges',
-    //       name: 'edge.edge-instances',
-    //       fullName: 'edge.edge-instances',
-    //       type: 'link',
-    //       path: '/edgeManagement/instances',
-    //       icon: 'router'
-    //     }
-    //   );
-    // }
     sections.push(
       {
         id: 'notifications_center',
@@ -1055,20 +990,6 @@ export class MenuService {
         ]
       }
     );
-    // if (authState.edgesSupportEnabled) {
-    //   homeSections.push(
-    //     {
-    //       name: 'edge.management',
-    //       places: [
-    //         {
-    //           name: 'edge.edge-instances',
-    //           icon: 'settings_input_antenna',
-    //           path: '/edgeInstances'
-    //         }
-    //       ]
-    //     }
-    //   );
-    // }
     homeSections.push(
       {
         name: 'dashboard.view-dashboards',

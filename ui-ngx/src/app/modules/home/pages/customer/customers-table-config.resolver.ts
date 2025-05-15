@@ -35,6 +35,7 @@ import { getCurrentAuthState } from '@core/auth/auth.selectors';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { HomeDialogsService } from '@home/dialogs/home-dialogs.service';
+import {UserRole} from "@shared/models/user.model";
 
 @Injectable()
 export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<Customer>> {
@@ -55,15 +56,13 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
     this.config.entityResources = entityTypeResources.get(EntityType.CUSTOMER);
     const authState = getCurrentAuthState(this.store);
 
-    if (authState.userDetails.additionalInfo.role !== 'controlytics_admin') {
+    if (authState.userDetails.additionalInfo.role !== UserRole.CONTROLYTICS_ADMIN) {
       this.config.detailsPanelEnabled = false;
     }
     this.config.columns.push(
       new DateEntityTableColumn<Customer>('createdTime', 'common.created-time', this.datePipe, '150px'),
       new EntityTableColumn<Customer>('title', 'customer.title', '25%'),
       new EntityTableColumn<Customer>('email', 'contact.email', '25%'),
-      new EntityTableColumn<Customer>('country', 'contact.country', '25%'),
-      new EntityTableColumn<Customer>('city', 'contact.city', '25%')
     );
     this.config.cellActionDescriptors.push(
       {
@@ -72,7 +71,7 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
         isEnabled: (customer) => !customer.additionalInfo || !customer.additionalInfo.isPublic,
         onAction: ($event, entity) => this.manageCustomerUsers($event, entity)
       },
-      ...(authState.userDetails.additionalInfo.role === 'controlytics_admin') ? [
+      ...(authState.userDetails.additionalInfo.role === UserRole.CONTROLYTICS_ADMIN) ? [
       {
         name: this.translate.instant('customer.manage-customer-assets'),
         nameFunction: (customer) => {
@@ -106,7 +105,7 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
         isEnabled: (customer) => true,
         onAction: ($event, entity) => this.manageCustomerDashboards($event, entity)
       }] : [],);
-    if (authState.edgesSupportEnabled && authState.userDetails.additionalInfo.role === 'controlytics_admin') {
+    if (authState.edgesSupportEnabled && authState.userDetails.additionalInfo.role === UserRole.CONTROLYTICS_ADMIN) {
       this.config.cellActionDescriptors.push(
         {
           name: this.translate.instant('customer.manage-customer-edges'),

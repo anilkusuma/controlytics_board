@@ -54,6 +54,82 @@ const routes: Routes = [
         }
       },
       {
+        path: 'users',
+        data: {
+          breadcrumb: {
+            label: 'user.customer-users',
+            icon: 'account_circle'
+          }
+        },
+        children: [
+          {
+            path: '',
+            component: EntitiesTableComponent,
+            data: {
+              auth: [Authority.TENANT_ADMIN],
+              title: 'user.customer-users'
+            },
+            resolve: {
+              entitiesTableConfig: UsersTableConfigResolver
+            }
+          },
+          {
+            path: ':entityId',
+            component: EntityDetailsPageComponent,
+            canDeactivate: [ConfirmOnExitGuard],
+            data: {
+              breadcrumb: {
+                labelFunction: entityDetailsPageBreadcrumbLabelFunction,
+                icon: 'account_circle'
+              } as BreadCrumbConfig<EntityDetailsPageComponent>,
+              auth: [Authority.TENANT_ADMIN],
+              title: 'user.customer-users'
+            },
+            resolve: {
+              entitiesTableConfig: UsersTableConfigResolver
+            }
+          }
+        ]
+      },
+      {
+        path: 'admins',
+        data: {
+          breadcrumb: {
+            label: 'user.customer-users',
+            icon: 'account_circle'
+          }
+        },
+        children: [
+          {
+            path: '',
+            component: EntitiesTableComponent,
+            data: {
+              auth: [Authority.TENANT_ADMIN],
+              title: 'user.customer-users'
+            },
+            resolve: {
+              entitiesTableConfig: UsersTableConfigResolver
+            }
+          },
+          {
+            path: ':entityId',
+            component: EntityDetailsPageComponent,
+            canDeactivate: [ConfirmOnExitGuard],
+            data: {
+              breadcrumb: {
+                labelFunction: entityDetailsPageBreadcrumbLabelFunction,
+                icon: 'account_circle'
+              } as BreadCrumbConfig<EntityDetailsPageComponent>,
+              auth: [Authority.TENANT_ADMIN],
+              title: 'user.customer-users'
+            },
+            resolve: {
+              entitiesTableConfig: UsersTableConfigResolver
+            }
+          }
+        ]
+      },
+      {
         path: ':entityId',
         component: EntityDetailsPageComponent,
         canDeactivate: [ConfirmOnExitGuard],

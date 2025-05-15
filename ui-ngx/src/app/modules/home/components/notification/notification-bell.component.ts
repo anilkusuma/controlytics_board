@@ -31,8 +31,9 @@ import { TbPopoverService } from '@shared/components/popover.service';
 import { ShowNotificationPopoverComponent } from '@home/components/notification/show-notification-popover.component';
 import { NotificationSubscriber } from '@shared/models/telemetry/telemetry.models';
 import { select, Store } from '@ngrx/store';
-import { selectIsAuthenticated } from '@core/auth/auth.selectors';
+import {selectIsAuthenticated, selectUserDetails} from '@core/auth/auth.selectors';
 import { AppState } from '@core/core.state';
+import {UserRole} from "@shared/models/user.model";
 
 @Component({
   selector: 'tb-notification-bell',
@@ -64,7 +65,11 @@ export class NotificationBellComponent implements OnDestroy {
     private store: Store<AppState>,) {
     this.store.pipe(select(selectIsAuthenticated)).subscribe((value) => {
       if (value) {
-        this.initSubscription();
+        this.store.select(selectUserDetails).subscribe((user) => {
+          if (user && user.additionalInfo.role !== UserRole.MAINTENANCE) {
+            this.initSubscription();
+          }
+        });
       }
     });
   }
@@ -108,6 +113,9 @@ export class NotificationBellComponent implements OnDestroy {
   }
 
   private unsubscribeSubscription() {
+    if (!this.notificationSubscriber) {
+      return;
+    }
     this.notificationCountSubscriber.unsubscribe();
     this.notificationSubscriber.unsubscribe();
     this.notificationSubscriber = null;
