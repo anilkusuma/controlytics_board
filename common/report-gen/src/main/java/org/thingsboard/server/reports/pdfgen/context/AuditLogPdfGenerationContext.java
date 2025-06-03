@@ -54,6 +54,7 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
                 auditLogs.stream()
                         .filter(auditLog -> !ActionType.ADDED_COMMENT.equals(auditLog.getActionType()))
                         .map(auditLog -> PdfContextAuditLog.builder().tenantId(auditLog.getTenantId().getId().toString())
+                        .createdTimeLong(auditLog.getCreatedTime())
                         .createdTime(getFormattedTimeInIst(auditLog.getCreatedTime()))
                         .createdTimeOnly(getFormattedTimeOnlyInIst(auditLog.getCreatedTime()))
                         .createdDate(getFormattedDateInIst(auditLog.getCreatedTime()))
@@ -66,7 +67,7 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
                         .status(auditLog.getActionStatus().name())
                         .details(getAuditLogDetails(auditLog))
                         .build()
-                ).sorted(Comparator.comparing(PdfContextAuditLog::getCreatedTime))
+                ).sorted(Comparator.comparing(PdfContextAuditLog::getCreatedTimeLong).reversed())
                         .collect(Collectors.toList());
         final List<List<PdfContextAuditLog>> paginatedAuditLogs = paginateList(contextAuditLogs, 15, 10);
         context.setVariable("paginatedAuditLogs", paginatedAuditLogs);
@@ -198,6 +199,7 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
     @Builder
     public static final class PdfContextAuditLog {
         private String tenantId;
+        private long createdTimeLong;
         private String createdTime;
         private String createdDate;
         private String createdTimeOnly;

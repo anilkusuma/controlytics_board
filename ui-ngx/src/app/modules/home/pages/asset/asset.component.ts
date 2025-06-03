@@ -25,6 +25,8 @@ import { ActionNotificationShow } from '@core/notification/notification.actions'
 import { TranslateService } from '@ngx-translate/core';
 import { AssetInfo } from '@app/shared/models/asset.models';
 import { EntityTableConfig } from '@home/models/entity/entities-table-config.models';
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
+import {UserRole} from "@shared/models/user.model";
 
 @Component({
   selector: 'tb-asset',
@@ -35,6 +37,8 @@ export class AssetComponent extends EntityComponent<AssetInfo> {
 
   entityType = EntityType;
 
+  userRole: UserRole;
+
   assetScope: 'tenant' | 'customer' | 'customer_user' | 'edge';
 
   constructor(protected store: Store<AppState>,
@@ -44,6 +48,7 @@ export class AssetComponent extends EntityComponent<AssetInfo> {
               public fb: UntypedFormBuilder,
               protected cd: ChangeDetectorRef) {
     super(store, fb, entityValue, entitiesTableConfigValue, cd);
+    this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
   }
 
   ngOnInit() {
@@ -102,4 +107,6 @@ export class AssetComponent extends EntityComponent<AssetInfo> {
   onAssetProfileUpdated() {
     this.entitiesTableConfig.updateData(false);
   }
+
+  protected readonly UserRole = UserRole;
 }

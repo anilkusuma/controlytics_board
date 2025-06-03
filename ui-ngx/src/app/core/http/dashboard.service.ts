@@ -23,7 +23,8 @@ import { PageData } from '@shared/models/page/page-data';
 import { Dashboard, DashboardInfo, HomeDashboard, HomeDashboardInfo } from '@shared/models/dashboard.models';
 import { WINDOW } from '@core/services/window.service';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter, map, publishReplay, refCount } from 'rxjs/operators';
+import { expand, filter, map, publishReplay, refCount, takeLast, toArray } from 'rxjs/operators';
+import { EMPTY, of } from 'rxjs';
 import {getCurrentAuthState} from "@core/auth/auth.selectors";
 import {Store} from "@ngrx/store";
 import {AppState} from "@core/core.state";
@@ -58,22 +59,54 @@ export class DashboardService {
 
   public getTenantDashboards(pageLink: PageLink, config?: RequestConfig): Observable<PageData<DashboardInfo>> {
     const authState = getCurrentAuthState(this.store);
+
+    if (authState.userDetails.additionalInfo.role !== UserRole.MAINTENANCE) {
+      return this.http.get<PageData<DashboardInfo>>(`/api/tenant/dashboards${pageLink.toQuery()}`,
+        defaultHttpOptionsFromConfig(config));
+    }
+
+    const assignedIds = authState.userDetails.additionalInfo.assignedDashboardIds ?? [];
+
+    if (assignedIds.length === 0) {
+      return of({
+        data: [],
+        totalPages: 0,
+        totalElements: 0,
+        hasNext: false
+      });
+    }
+
+    const targetPageSize = pageLink.pageSize;
+    let accumulatedData: DashboardInfo[] = [];
+    let currentPage = pageLink.page;
+
     return this.http.get<PageData<DashboardInfo>>(`/api/tenant/dashboards${pageLink.toQuery()}`,
       defaultHttpOptionsFromConfig(config)).pipe(
-      map(pageData => {
-        if (authState.userDetails.additionalInfo.role === UserRole.MAINTENANCE) {
-          const assignedIds = authState.userDetails.additionalInfo.assignedDashboardIds ?? [];
-          const filteredDashboards = pageData.data.filter(dashboard =>
-            assignedIds.includes(dashboard.id.id)
-          );
-          return {
-            ...pageData,
-            data: filteredDashboards,
-            totalElements: filteredDashboards.length,
-            totalPages: Math.ceil(filteredDashboards.length / pageLink.pageSize)
-          };
+      expand((pageData: PageData<DashboardInfo>) => {
+        const filteredDashboards = pageData.data.filter(dashboard =>
+          assignedIds.includes(dashboard.id.id)
+        );
+
+        accumulatedData = [...accumulatedData, ...filteredDashboards];
+
+        if (accumulatedData.length >= targetPageSize || !pageData.hasNext) {
+          return EMPTY;
         }
-        return pageData;
+
+        currentPage++;
+        const nextPageLink = new PageLink(pageLink.pageSize, currentPage, pageLink.textSearch, pageLink.sortOrder);
+        return this.http.get<PageData<DashboardInfo>>(`/api/tenant/dashboards${nextPageLink.toQuery()}`,
+          defaultHttpOptionsFromConfig(config));
+      }),
+      takeLast(1),
+      map(() => {
+        const finalData = accumulatedData.slice(0, targetPageSize);
+        return {
+          data: finalData,
+          totalElements: finalData.length,
+          totalPages: Math.ceil(finalData.length / targetPageSize),
+          hasNext: accumulatedData.length > targetPageSize
+        };
       })
     );
   }
@@ -86,18 +119,47 @@ export class DashboardService {
 
   public getCustomerDashboards(customerId: string, pageLink: PageLink, config?: RequestConfig): Observable<PageData<DashboardInfo>> {
     const authState = getCurrentAuthState(this.store);
+    const assignedIds = authState.userDetails.additionalInfo.assignedDashboardIds ?? [];
+
+    if (assignedIds.length === 0) {
+      return of({
+        data: [],
+        totalPages: 0,
+        totalElements: 0,
+        hasNext: false
+      });
+    }
+
+    const targetPageSize = pageLink.pageSize;
+    let accumulatedData: DashboardInfo[] = [];
+    let currentPage = pageLink.page;
+
     return this.http.get<PageData<DashboardInfo>>(`/api/customer/${customerId}/dashboards${pageLink.toQuery()}`,
       defaultHttpOptionsFromConfig(config)).pipe(
-      map(pageData => {
-        const assignedIds = authState.userDetails.additionalInfo.assignedDashboardIds ?? [];
+      expand((pageData: PageData<DashboardInfo>) => {
         const filteredDashboards = pageData.data.filter(dashboard =>
           assignedIds.includes(dashboard.id.id)
         );
+
+        accumulatedData = [...accumulatedData, ...filteredDashboards];
+
+        if (accumulatedData.length >= targetPageSize || !pageData.hasNext) {
+          return EMPTY;
+        }
+
+        currentPage++;
+        const nextPageLink = new PageLink(pageLink.pageSize, currentPage, pageLink.textSearch, pageLink.sortOrder);
+        return this.http.get<PageData<DashboardInfo>>(`/api/customer/${customerId}/dashboards${nextPageLink.toQuery()}`,
+          defaultHttpOptionsFromConfig(config));
+      }),
+      takeLast(1),
+      map(() => {
+        const finalData = accumulatedData.slice(0, targetPageSize);
         return {
-          ...pageData,
-          data: filteredDashboards,
-          totalElements: filteredDashboards.length,
-          totalPages: Math.ceil(filteredDashboards.length / pageLink.pageSize)
+          data: finalData,
+          totalElements: finalData.length,
+          totalPages: Math.ceil(finalData.length / targetPageSize),
+          hasNext: accumulatedData.length > targetPageSize
         };
       })
     );

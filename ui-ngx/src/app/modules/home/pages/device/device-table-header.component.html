@@ -16,5 +16,5 @@
 
 -->
 <tb-device-info-filter [ngModel]="entitiesTableConfig.componentsData.deviceInfoFilter"
-                       (ngModelChange)="deviceInfoFilterChanged($event)">
+                       (ngModelChange)="deviceInfoFilterChanged($event)" *ngIf="false">
 </tb-device-info-filter>

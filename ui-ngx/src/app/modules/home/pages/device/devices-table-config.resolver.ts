@@ -218,24 +218,24 @@ export class DevicesTableConfigResolver implements Resolve<EntityTableConfig<Dev
 
   configureColumns(deviceScope: string): Array<EntityTableColumn<DeviceInfo>> {
     const columns: Array<EntityTableColumn<DeviceInfo>> = [
-      new DateEntityTableColumn<DeviceInfo>('createdTime', 'common.created-time', this.datePipe, '150px'),
-      new EntityTableColumn<DeviceInfo>('name', 'device.name', '25%'),
-      new EntityTableColumn<DeviceInfo>('deviceProfileName', 'device-profile.device-profile', '25%'),
+      // new DateEntityTableColumn<DeviceInfo>('createdTime', 'common.created-time', this.datePipe, '150px'),
+      new EntityTableColumn<DeviceInfo>('name', 'Instrument ID', '25%'),
+      new EntityTableColumn<DeviceInfo>('deviceProfileName', 'Instrument Name', '25%'),
       new EntityTableColumn<DeviceInfo>('label', 'device.label', '25%'),
       new EntityTableColumn<DeviceInfo>('active', 'device.state', '80px',
         entity => this.deviceState(entity), entity => this.deviceStateStyle(entity))
     ];
-    if (deviceScope === 'tenant') {
-      columns.push(
-        new EntityTableColumn<DeviceInfo>('customerTitle', 'customer.customer', '25%'),
-        new EntityTableColumn<DeviceInfo>('customerIsPublic', 'device.public', '60px',
-          entity => checkBoxCell(entity.customerIsPublic), () => ({})),
-      );
-    }
-    columns.push(
-      new EntityTableColumn<DeviceInfo>('gateway', 'device.is-gateway', '60px',
-        entity => checkBoxCell(entity.additionalInfo && entity.additionalInfo.gateway), () => ({}), false)
-    );
+    // if (deviceScope === 'tenant') {
+    //   columns.push(
+    //     new EntityTableColumn<DeviceInfo>('customerTitle', 'customer.customer', '25%'),
+    //     new EntityTableColumn<DeviceInfo>('customerIsPublic', 'device.public', '60px',
+    //       entity => checkBoxCell(entity.customerIsPublic), () => ({})),
+    //   );
+    // }
+    // columns.push(
+    //   new EntityTableColumn<DeviceInfo>('gateway', 'device.is-gateway', '60px',
+    //     entity => checkBoxCell(entity.additionalInfo && entity.additionalInfo.gateway), () => ({}), false)
+    // );
     return columns;
   }
 
@@ -285,117 +285,117 @@ export class DevicesTableConfigResolver implements Resolve<EntityTableConfig<Dev
 
   configureCellActions(deviceScope: string): Array<CellActionDescriptor<DeviceInfo>> {
     const actions: Array<CellActionDescriptor<DeviceInfo>> = [];
-    if (deviceScope === 'tenant') {
-      actions.push(
-        {
-          name: this.translate.instant('device.make-public'),
-          icon: 'share',
-          isEnabled: (entity) => (!entity.customerId || entity.customerId.id === NULL_UUID),
-          onAction: ($event, entity) => this.makePublic($event, entity)
-        },
-        {
-          name: this.translate.instant('device.assign-to-customer'),
-          icon: 'assignment_ind',
-          isEnabled: (entity) => (!entity.customerId || entity.customerId.id === NULL_UUID),
-          onAction: ($event, entity) => this.assignToCustomer($event, [entity.id])
-        },
-        {
-          name: this.translate.instant('device.unassign-from-customer'),
-          icon: 'assignment_return',
-          isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && !entity.customerIsPublic),
-          onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
-        },
-        {
-          name: this.translate.instant('device.make-private'),
-          icon: 'reply',
-          isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && entity.customerIsPublic),
-          onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
-        },
-        {
-          name: this.translate.instant('device.manage-credentials'),
-          icon: 'security',
-          isEnabled: () => true,
-          onAction: ($event, entity) => this.manageCredentials($event, entity)
-        }
-      );
-    }
-    if (deviceScope === 'customer') {
-      actions.push(
-        {
-          name: this.translate.instant('device.unassign-from-customer'),
-          icon: 'assignment_return',
-          isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && !entity.customerIsPublic),
-          onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
-        },
-        {
-          name: this.translate.instant('device.make-private'),
-          icon: 'reply',
-          isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && entity.customerIsPublic),
-          onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
-        },
-        {
-          name: this.translate.instant('device.manage-credentials'),
-          icon: 'security',
-          isEnabled: () => true,
-          onAction: ($event, entity) => this.manageCredentials($event, entity)
-        }
-      );
-    }
-    if (deviceScope === 'customer_user' || deviceScope === 'edge_customer_user') {
-      actions.push(
-        {
-          name: this.translate.instant('device.view-credentials'),
-          icon: 'security',
-          isEnabled: () => true,
-          onAction: ($event, entity) => this.manageCredentials($event, entity)
-        }
-      );
-    }
-    if (deviceScope === 'edge') {
-      actions.push(
-        {
-          name: this.translate.instant('edge.unassign-from-edge'),
-          icon: 'assignment_return',
-          isEnabled: (entity) => true,
-          onAction: ($event, entity) => this.unassignFromEdge($event, entity)
-        }
-      );
-    }
+    // if (deviceScope === 'tenant') {
+    //   actions.push(
+    //     {
+    //       name: this.translate.instant('device.make-public'),
+    //       icon: 'share',
+    //       isEnabled: (entity) => (!entity.customerId || entity.customerId.id === NULL_UUID),
+    //       onAction: ($event, entity) => this.makePublic($event, entity)
+    //     },
+    //     {
+    //       name: this.translate.instant('device.assign-to-customer'),
+    //       icon: 'assignment_ind',
+    //       isEnabled: (entity) => (!entity.customerId || entity.customerId.id === NULL_UUID),
+    //       onAction: ($event, entity) => this.assignToCustomer($event, [entity.id])
+    //     },
+    //     {
+    //       name: this.translate.instant('device.unassign-from-customer'),
+    //       icon: 'assignment_return',
+    //       isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && !entity.customerIsPublic),
+    //       onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
+    //     },
+    //     {
+    //       name: this.translate.instant('device.make-private'),
+    //       icon: 'reply',
+    //       isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && entity.customerIsPublic),
+    //       onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
+    //     },
+    //     {
+    //       name: this.translate.instant('device.manage-credentials'),
+    //       icon: 'security',
+    //       isEnabled: () => true,
+    //       onAction: ($event, entity) => this.manageCredentials($event, entity)
+    //     }
+    //   );
+    // }
+    // if (deviceScope === 'customer') {
+    //   actions.push(
+    //     {
+    //       name: this.translate.instant('device.unassign-from-customer'),
+    //       icon: 'assignment_return',
+    //       isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && !entity.customerIsPublic),
+    //       onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
+    //     },
+    //     {
+    //       name: this.translate.instant('device.make-private'),
+    //       icon: 'reply',
+    //       isEnabled: (entity) => (entity.customerId && entity.customerId.id !== NULL_UUID && entity.customerIsPublic),
+    //       onAction: ($event, entity) => this.unassignFromCustomer($event, entity)
+    //     },
+    //     {
+    //       name: this.translate.instant('device.manage-credentials'),
+    //       icon: 'security',
+    //       isEnabled: () => true,
+    //       onAction: ($event, entity) => this.manageCredentials($event, entity)
+    //     }
+    //   );
+    // }
+    // if (deviceScope === 'customer_user' || deviceScope === 'edge_customer_user') {
+    //   actions.push(
+    //     {
+    //       name: this.translate.instant('device.view-credentials'),
+    //       icon: 'security',
+    //       isEnabled: () => true,
+    //       onAction: ($event, entity) => this.manageCredentials($event, entity)
+    //     }
+    //   );
+    // }
+    // if (deviceScope === 'edge') {
+    //   actions.push(
+    //     {
+    //       name: this.translate.instant('edge.unassign-from-edge'),
+    //       icon: 'assignment_return',
+    //       isEnabled: (entity) => true,
+    //       onAction: ($event, entity) => this.unassignFromEdge($event, entity)
+    //     }
+    //   );
+    // }
     return actions;
   }
 
   configureGroupActions(deviceScope: string): Array<GroupActionDescriptor<DeviceInfo>> {
     const actions: Array<GroupActionDescriptor<DeviceInfo>> = [];
-    if (deviceScope === 'tenant') {
-      actions.push(
-        {
-          name: this.translate.instant('device.assign-devices'),
-          icon: 'assignment_ind',
-          isEnabled: true,
-          onAction: ($event, entities) => this.assignToCustomer($event, entities.map((entity) => entity.id))
-        }
-      );
-    }
-    if (deviceScope === 'customer') {
-      actions.push(
-        {
-          name: this.translate.instant('device.unassign-devices'),
-          icon: 'assignment_return',
-          isEnabled: true,
-          onAction: ($event, entities) => this.unassignDevicesFromCustomer($event, entities)
-        }
-      );
-    }
-    if (deviceScope === 'edge') {
-      actions.push(
-        {
-          name: this.translate.instant('device.unassign-devices-from-edge'),
-          icon: 'assignment_return',
-          isEnabled: true,
-          onAction: ($event, entities) => this.unassignDevicesFromEdge($event, entities)
-        }
-      );
-    }
+    // if (deviceScope === 'tenant') {
+    //   actions.push(
+    //     {
+    //       name: this.translate.instant('device.assign-devices'),
+    //       icon: 'assignment_ind',
+    //       isEnabled: true,
+    //       onAction: ($event, entities) => this.assignToCustomer($event, entities.map((entity) => entity.id))
+    //     }
+    //   );
+    // }
+    // if (deviceScope === 'customer') {
+    //   actions.push(
+    //     {
+    //       name: this.translate.instant('device.unassign-devices'),
+    //       icon: 'assignment_return',
+    //       isEnabled: true,
+    //       onAction: ($event, entities) => this.unassignDevicesFromCustomer($event, entities)
+    //     }
+    //   );
+    // }
+    // if (deviceScope === 'edge') {
+    //   actions.push(
+    //     {
+    //       name: this.translate.instant('device.unassign-devices-from-edge'),
+    //       icon: 'assignment_return',
+    //       isEnabled: true,
+    //       onAction: ($event, entities) => this.unassignDevicesFromEdge($event, entities)
+    //     }
+    //   );
+    // }
     return actions;
   }
 

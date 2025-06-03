@@ -29,19 +29,19 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core';
-import { PageComponent } from '@shared/components/page.component';
-import { PageLink } from '@shared/models/page/page-link';
-import { MatPaginator } from '@angular/material/paginator';
-import { MatSort } from '@angular/material/sort';
-import { Store } from '@ngrx/store';
-import { AppState } from '@core/core.state';
-import { TranslateService } from '@ngx-translate/core';
-import { MatDialog } from '@angular/material/dialog';
-import { DialogService } from '@core/services/dialog.service';
-import { Direction, SortOrder } from '@shared/models/page/sort-order';
-import { forkJoin, merge, Observable, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { EntityId } from '@shared/models/id/entity-id';
+import {PageComponent} from '@shared/components/page.component';
+import {PageLink} from '@shared/models/page/page-link';
+import {MatPaginator} from '@angular/material/paginator';
+import {MatSort} from '@angular/material/sort';
+import {Store} from '@ngrx/store';
+import {AppState} from '@core/core.state';
+import {TranslateService} from '@ngx-translate/core';
+import {MatDialog} from '@angular/material/dialog';
+import {DialogService} from '@core/services/dialog.service';
+import {Direction, SortOrder} from '@shared/models/page/sort-order';
+import {forkJoin, merge, Observable, Subject} from 'rxjs';
+import {debounceTime, distinctUntilChanged, takeUntil} from 'rxjs/operators';
+import {EntityId} from '@shared/models/id/entity-id';
 import {
   AttributeData,
   AttributeScope,
@@ -53,43 +53,44 @@ import {
   TimeseriesDeleteStrategy,
   toTelemetryType
 } from '@shared/models/telemetry/telemetry.models';
-import { AttributeDatasource } from '@home/models/datasource/attribute-datasource';
-import { AttributeService } from '@app/core/http/attribute.service';
-import { EntityType } from '@shared/models/entity-type.models';
-import { coerceBooleanProperty } from '@angular/cdk/coercion';
+import {AttributeDatasource} from '@home/models/datasource/attribute-datasource';
+import {AttributeService} from '@app/core/http/attribute.service';
+import {EntityType} from '@shared/models/entity-type.models';
+import {coerceBooleanProperty} from '@angular/cdk/coercion';
 import {
   AddAttributeDialogComponent,
   AddAttributeDialogData
 } from '@home/components/attribute/add-attribute-dialog.component';
-import { ConnectedPosition, Overlay, OverlayConfig, OverlayRef } from '@angular/cdk/overlay';
+import {ConnectedPosition, Overlay, OverlayConfig, OverlayRef} from '@angular/cdk/overlay';
 import {
   EDIT_ATTRIBUTE_VALUE_PANEL_DATA,
   EditAttributeValuePanelComponent,
   EditAttributeValuePanelData
 } from './edit-attribute-value-panel.component';
-import { ComponentPortal } from '@angular/cdk/portal';
-import { TelemetryWebsocketService } from '@core/ws/telemetry-websocket.service';
-import { WidgetsBundle } from '@shared/models/widgets-bundle.model';
-import { DataKey, Datasource, DatasourceType, Widget, widgetType } from '@shared/models/widget.models';
-import { IAliasController, IStateController, StateParams } from '@core/api/widget-api.models';
-import { AliasController } from '@core/api/alias-controller';
-import { EntityAlias, EntityAliases } from '@shared/models/alias.models';
-import { UtilsService } from '@core/services/utils.service';
-import { DashboardUtilsService } from '@core/services/dashboard-utils.service';
-import { NULL_UUID } from '@shared/models/id/has-uuid';
-import { WidgetService } from '@core/http/widget.service';
-import { toWidgetInfo } from '../../models/widget-component.models';
-import { EntityService } from '@core/http/entity.service';
+import {ComponentPortal} from '@angular/cdk/portal';
+import {TelemetryWebsocketService} from '@core/ws/telemetry-websocket.service';
+import {WidgetsBundle} from '@shared/models/widgets-bundle.model';
+import {DataKey, Datasource, DatasourceType, Widget, widgetType} from '@shared/models/widget.models';
+import {IAliasController, IStateController, StateParams} from '@core/api/widget-api.models';
+import {AliasController} from '@core/api/alias-controller';
+import {EntityAlias, EntityAliases} from '@shared/models/alias.models';
+import {UtilsService} from '@core/services/utils.service';
+import {DashboardUtilsService} from '@core/services/dashboard-utils.service';
+import {WidgetService} from '@core/http/widget.service';
+import {toWidgetInfo} from '../../models/widget-component.models';
+import {EntityService} from '@core/http/entity.service';
 import {
   AddWidgetToDashboardDialogComponent,
   AddWidgetToDashboardDialogData
 } from '@home/components/attribute/add-widget-to-dashboard-dialog.component';
-import { deepClone } from '@core/utils';
-import { Filters } from '@shared/models/query/query.models';
-import { hidePageSizePixelValue } from '@shared/models/constants';
-import { ResizeObserver } from '@juggle/resize-observer';
-import { DeleteTimeseriesPanelComponent } from '@home/components/attribute/delete-timeseries-panel.component';
-import { FormBuilder } from '@angular/forms';
+import {deepClone} from '@core/utils';
+import {Filters} from '@shared/models/query/query.models';
+import {hidePageSizePixelValue} from '@shared/models/constants';
+import {ResizeObserver} from '@juggle/resize-observer';
+import {DeleteTimeseriesPanelComponent} from '@home/components/attribute/delete-timeseries-panel.component';
+import {FormBuilder} from '@angular/forms';
+import {UserRole} from "@shared/models/user.model";
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
 
 
 @Component({
@@ -112,7 +113,7 @@ export class AttributeTableComponent extends PageComponent implements AfterViewI
   attributeScope: TelemetryType;
   toTelemetryTypeFunc = toTelemetryType;
 
-  displayedColumns = ['select', 'lastUpdateTs', 'key', 'value'];
+  displayedColumns = ['select', 'key', 'value'];
   pageLink: PageLink;
   textSearchMode = false;
   dataSource: AttributeDatasource;
@@ -134,6 +135,8 @@ export class AttributeTableComponent extends PageComponent implements AfterViewI
   widgetsListCache: Array<Array<Widget>> = [];
   aliasController: IAliasController;
   private widgetDatasource: Datasource;
+
+  userRole: UserRole;
 
   private widgetResize$: ResizeObserver;
 
@@ -207,6 +210,7 @@ export class AttributeTableComponent extends PageComponent implements AfterViewI
     this.dirtyValue = !this.activeValue;
     const sortOrder: SortOrder = { property: 'key', direction: Direction.ASC };
     this.pageLink = new PageLink(10, 0, null, sortOrder);
+    this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
     this.dataSource = new AttributeDatasource(this.attributeService, this.telemetryWsService, this.zone, this.translate);
   }
 
@@ -283,7 +287,11 @@ export class AttributeTableComponent extends PageComponent implements AfterViewI
   resetSortAndFilter(update: boolean = true) {
     const entityType = this.entityIdValue.entityType;
     if (entityType === EntityType.DEVICE || entityType === EntityType.ENTITY_VIEW) {
-      this.attributeScopes = Object.keys(AttributeScope);
+      if (this.userRole === UserRole.CONTROLYTICS_ADMIN) {
+        this.attributeScopes = Object.keys(AttributeScope);
+      } else {
+        this.attributeScopes = [AttributeScope.SHARED_SCOPE];
+      }
       this.attributeScopeSelectionReadonly = false;
     } else {
       this.attributeScopes = [AttributeScope.SERVER_SCOPE];

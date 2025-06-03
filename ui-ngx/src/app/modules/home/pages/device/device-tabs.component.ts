@@ -19,6 +19,8 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { DeviceInfo } from '@shared/models/device.models';
 import { EntityTabsComponent } from '../../components/entity/entity-tabs.component';
+import {UserRole} from "@shared/models/user.model";
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
 
 @Component({
   selector: 'tb-device-tabs',
@@ -27,12 +29,16 @@ import { EntityTabsComponent } from '../../components/entity/entity-tabs.compone
 })
 export class DeviceTabsComponent extends EntityTabsComponent<DeviceInfo> {
 
+  public userRole: UserRole;
+
   constructor(protected store: Store<AppState>) {
     super(store);
+    this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
   }
 
   ngOnInit() {
     super.ngOnInit();
   }
 
+  protected readonly UserRole = UserRole;
 }

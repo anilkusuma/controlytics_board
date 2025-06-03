@@ -17,42 +17,48 @@
 -->
 <div class="tb-details-buttons" fxLayout.xs="column">
   <button mat-raised-button color="primary"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'open')"
           [fxShow]="!isEdit && !isDetailsPage">
     {{'common.open-details-page' | translate }}
   </button>
   <button mat-raised-button color="primary"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'makePublic')"
           [fxShow]="!isEdit && assetScope === 'tenant' && !isAssignedToCustomer(entity) && !entity?.customerIsPublic">
     {{'asset.make-public' | translate }}
   </button>
   <button mat-raised-button color="primary"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'assignToCustomer')"
           [fxShow]="!isEdit && assetScope === 'tenant' && !isAssignedToCustomer(entity)">
     {{'asset.assign-to-customer' | translate }}
   </button>
   <button mat-raised-button color="primary"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'unassignFromCustomer')"
           [fxShow]="!isEdit && (assetScope === 'customer' || assetScope === 'tenant') && isAssignedToCustomer(entity)">
     {{ (entity?.customerIsPublic ? 'asset.make-private' : 'asset.unassign-from-customer') | translate }}
   </button>
   <button mat-raised-button color="primary"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'unassignFromEdge')"
           [fxShow]="!isEdit && assetScope === 'edge'">
     {{ 'edge.unassign-from-edge' | translate }}
   </button>
   <button mat-raised-button color="primary"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           [disabled]="(isLoading$ | async)"
           (click)="onEntityAction($event, 'delete')"
           [fxShow]="!hideDelete() && !isEdit">
     {{'asset.delete' | translate }}
   </button>
-  <div fxLayout="row" fxLayout.xs="column">
+  <div fxLayout="row" fxLayout.xs="column" *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN">
     <button mat-raised-button
             ngxClipboard
             (cbOnSuccess)="onAssetIdCopied($event)"

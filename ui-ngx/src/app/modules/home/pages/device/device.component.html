@@ -18,48 +18,56 @@
 <div class="tb-details-buttons" fxLayout.xs="column">
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'open')"
           [fxShow]="!isEdit && !isDetailsPage">
     {{'common.open-details-page' | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'makePublic')"
           [fxShow]="!isEdit && deviceScope === 'tenant' && !isAssignedToCustomer(entity) && !entity?.customerIsPublic">
     {{'device.make-public' | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'assignToCustomer')"
           [fxShow]="!isEdit && deviceScope === 'tenant' && !isAssignedToCustomer(entity)">
     {{'device.assign-to-customer' | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'unassignFromCustomer')"
           [fxShow]="!isEdit && (deviceScope === 'customer' || deviceScope === 'tenant') && isAssignedToCustomer(entity)">
     {{ (entity?.customerIsPublic ? 'device.make-private' : 'device.unassign-from-customer') | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'manageCredentials')"
           [fxShow]="!isEdit">
     {{ ((deviceScope === 'customer_user' || deviceScope === 'edge_customer_user') ? 'device.view-credentials' : 'device.manage-credentials') | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'checkConnectivity')"
           [fxShow]="!isEdit">
     {{ 'device.connectivity.check-connectivity' | translate }}
   </button>
   <button mat-raised-button color="primary"
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'unassignFromEdge')"
           [fxShow]="!isEdit && deviceScope === 'edge'">
     {{ 'edge.unassign-from-edge' | translate }}
   </button>
   <button mat-raised-button color="primary" fxFlex.xs
           [disabled]="(isLoading$ | async)"
+          *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
           (click)="onEntityAction($event, 'delete')"
           [fxShow]="!hideDelete() && !isEdit">
     {{'device.delete' | translate }}
@@ -67,6 +75,7 @@
   <div fxLayout="row" fxLayout.xs="column">
     <button mat-raised-button
             ngxClipboard
+            *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
             (cbOnSuccess)="onDeviceIdCopied($event)"
             [cbContent]="entity?.id?.id"
             [disabled]="(isLoading$ | async)"
@@ -76,6 +85,7 @@
     </button>
     <tb-copy-device-credentials
       [fxShow]="!isEdit"
+      *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
       [disabled]="(isLoading$ | async)"
       [credentials$]="deviceCredentials$"
       [deviceId]="entity?.id">
@@ -121,6 +131,7 @@
         </mat-error>
       </mat-form-field>
       <tb-ota-package-autocomplete
+        *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
         [useFullEntityId]="true"
         [showDetailsPageLink]="true"
         [type]="otaUpdateType.FIRMWARE"
@@ -128,6 +139,7 @@
         formControlName="firmwareId">
       </tb-ota-package-autocomplete>
       <tb-ota-package-autocomplete
+        *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
         [useFullEntityId]="true"
         [showDetailsPageLink]="true"
         [type]="otaUpdateType.SOFTWARE"
@@ -139,7 +151,7 @@
         required>
       </tb-device-data>
       <div formGroupName="additionalInfo" fxLayout="column">
-        <div class="toggle-group">
+        <div class="toggle-group" *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN">
           <mat-slide-toggle formControlName="gateway" style="min-width: 165px">
             {{ 'device.is-gateway' | translate }}
           </mat-slide-toggle>

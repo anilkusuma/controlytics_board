@@ -53,6 +53,7 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
         final List<PdfContextTelemetry> contextTelemetry = telemetryEntriesByTs.entrySet().stream()
                 .map(entry -> {
                     final PdfContextTelemetry telemetry = new PdfContextTelemetry();
+                    telemetry.setDateTimeEpoch(entry.getKey());
                     telemetry.setDateTime(getFormattedTimeInIst(entry.getKey()));
                     telemetry.setDate(getFormattedDateInIst(entry.getKey()));
                     telemetry.setTime(getFormattedTimeOnlyInIst(entry.getKey()));
@@ -91,7 +92,7 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
                     });
                     telemetry.setTs(String.valueOf(entry.getKey()));
                     return telemetry;
-                }).sorted(Comparator.comparing(PdfContextTelemetry::getDateTime)).collect(Collectors.toList());
+                }).sorted(Comparator.comparing(PdfContextTelemetry::getDateTimeEpoch).reversed()).collect(Collectors.toList());
         final MinMaxHolder holder = new MinMaxHolder();
         log.info("minTemperature: {}, maxTemperature: {}, minHumidity: {}, maxHumidity: {}",
                 holder.getMinTemperature(), holder.getMaxTemperature(), holder.getMinHumidity(), holder.getMaxHumidity());
@@ -107,6 +108,7 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
     @Data
     @NoArgsConstructor
     public static class PdfContextTelemetry {
+        private long dateTimeEpoch;
         private String dateTime;
         private String date;
         private String time;

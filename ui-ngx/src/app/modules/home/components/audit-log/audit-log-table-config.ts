@@ -81,7 +81,8 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
     this.defaultSortOrder = {property: 'createdTime', direction: Direction.DESC};
 
     this.columns.push(
-      new DateEntityTableColumn<AuditLog>('createdTime', 'audit-log.timestamp', this.datePipe, '150px'));
+      new DateEntityTableColumn<AuditLog>('createdTime', 'audit-log.timestamp', this.datePipe, '150px', 'dd-MM-yyyy' +
+        ' HH:mm:ss'));
 
     this.columns.push(
       new EntityTableColumn<AuditLog>('details', 'audit-log.description-of-event', '45%',
@@ -123,7 +124,7 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
                     const blobUrl = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = blobUrl;
-                    link.download = `audit_logs_${this.datePipe.transform(new Date(), 'dd_MM_yyyy_HH_mm_ss')}.pdf`;
+                    link.download = `audit_trail_${this.datePipe.transform(new Date(), 'dd_MM_yyyy_HH_mm_ss')}.pdf`;
                     link.click();
                   }
                 );

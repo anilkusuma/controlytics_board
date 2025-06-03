@@ -37,6 +37,8 @@ import { Subject } from 'rxjs';
 import { OtaUpdateType } from '@shared/models/ota-package.models';
 import { distinctUntilChanged } from 'rxjs/operators';
 import { getEntityDetailsPageURL } from '@core/utils';
+import {UserRole} from "@shared/models/user.model";
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
 
 @Component({
   selector: 'tb-device',
@@ -49,6 +51,8 @@ export class DeviceComponent extends EntityComponent<DeviceInfo> {
 
   deviceCredentials$: Subject<DeviceCredentials>;
 
+  userRole: UserRole;
+
   deviceScope: 'tenant' | 'customer' | 'customer_user' | 'edge' | 'edge_customer_user';
 
   otaUpdateType = OtaUpdateType;
@@ -60,6 +64,7 @@ export class DeviceComponent extends EntityComponent<DeviceInfo> {
               public fb: UntypedFormBuilder,
               protected cd: ChangeDetectorRef) {
     super(store, fb, entityValue, entitiesTableConfigValue, cd);
+    this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
   }
 
   ngOnInit() {
@@ -172,4 +177,6 @@ export class DeviceComponent extends EntityComponent<DeviceInfo> {
       }
     }
   }
+
+  protected readonly UserRole = UserRole;
 }

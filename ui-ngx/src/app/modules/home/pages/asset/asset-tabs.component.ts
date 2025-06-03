@@ -19,6 +19,8 @@ import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { EntityTabsComponent } from '../../components/entity/entity-tabs.component';
 import { AssetInfo } from '@app/shared/models/asset.models';
+import {UserRole} from "@shared/models/user.model";
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
 
 @Component({
   selector: 'tb-asset-tabs',
@@ -27,12 +29,15 @@ import { AssetInfo } from '@app/shared/models/asset.models';
 })
 export class AssetTabsComponent extends EntityTabsComponent<AssetInfo> {
 
+  userRole: UserRole;
   constructor(protected store: Store<AppState>) {
     super(store);
+    this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
   }
 
   ngOnInit() {
     super.ngOnInit();
   }
 
+  protected readonly UserRole = UserRole;
 }

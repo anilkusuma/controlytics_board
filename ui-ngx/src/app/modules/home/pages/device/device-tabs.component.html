@@ -23,7 +23,7 @@
                       [entityName]="entity.name">
   </tb-attribute-table>
 </mat-tab>
-<mat-tab *ngIf="entity"
+<mat-tab *ngIf="entity && userRole === UserRole.CONTROLYTICS_ADMIN"
          label="{{ 'attribute.latest-telemetry' | translate }}" #telemetryTab="matTab">
   <tb-attribute-table [defaultAttributeScope]="latestTelemetryTypes.LATEST_TELEMETRY"
                       disableAttributeScopeSelection
@@ -32,24 +32,24 @@
                       [entityName]="entity.name">
   </tb-attribute-table>
 </mat-tab>
-<mat-tab *ngIf="entity"
+<mat-tab *ngIf="entity && userRole === UserRole.CONTROLYTICS_ADMIN"
          label="{{ 'alarm.alarms' | translate }}" #alarmsTab="matTab">
   <tb-alarm-table [active]="alarmsTab.isActive" [entityId]="entity.id"></tb-alarm-table>
 </mat-tab>
-<mat-tab *ngIf="entity"
+<mat-tab *ngIf="entity && userRole === UserRole.CONTROLYTICS_ADMIN"
          label="{{ 'device.events' | translate }}" #eventsTab="matTab">
   <tb-event-table [defaultEventType]="eventTypes.ERROR" [active]="eventsTab.isActive" [tenantId]="entity.tenantId.id"
                   [entityId]="entity.id"></tb-event-table>
 </mat-tab>
-<mat-tab *ngIf="entity"
+<mat-tab *ngIf="entity && userRole === UserRole.CONTROLYTICS_ADMIN"
          label="{{ 'relation.relations' | translate }}" #relationsTab="matTab">
   <tb-relation-table [active]="relationsTab.isActive" [entityId]="entity.id"></tb-relation-table>
 </mat-tab>
-<mat-tab *ngIf="entity && authUser.authority === authorities.TENANT_ADMIN"
+<mat-tab *ngIf="entity && authUser.authority === authorities.TENANT_ADMIN && userRole === UserRole.CONTROLYTICS_ADMIN"
          label="{{ 'audit-log.audit-logs' | translate }}" #auditLogsTab="matTab">
   <tb-audit-log-table detailsMode="true" [active]="auditLogsTab.isActive" [auditLogMode]="auditLogModes.ENTITY" [entityId]="entity.id"></tb-audit-log-table>
 </mat-tab>
-<mat-tab *ngIf="entity && authUser.authority === authorities.TENANT_ADMIN"
+<mat-tab *ngIf="entity && authUser.authority === authorities.TENANT_ADMIN && userRole === UserRole.CONTROLYTICS_ADMIN"
          label="{{ 'version-control.version-control' | translate }}" #versionControlTab="matTab">
   <tb-version-control detailsMode="true" singleEntityMode="true"
                       (versionRestored)="entitiesTableConfig.updateData()"

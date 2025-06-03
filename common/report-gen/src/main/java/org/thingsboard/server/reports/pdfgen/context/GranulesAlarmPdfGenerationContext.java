@@ -69,6 +69,7 @@ public class GranulesAlarmPdfGenerationContext extends GranulesBasePdfGeneration
                         alarmInfo.setAlarmUom("N/A");
                     }
 
+                    alarmInfo.setAlarmCreatedTimeEpoch(alarm.getCreatedTime());
                     alarmInfo.setAlarmCreatedDate(getFormattedDateInIst(alarm.getCreatedTime()));
                     alarmInfo.setAlarmCreatedTimeOnly(getFormattedTimeOnlyInIst(alarm.getCreatedTime()));
                     alarmInfo.setAlarmCreatedTime(getFormattedTimeInIst(alarm.getCreatedTime()));
@@ -81,7 +82,8 @@ public class GranulesAlarmPdfGenerationContext extends GranulesBasePdfGeneration
                             Optional.ofNullable(extractDecimal(alarm.getDetails().get("clearedValue").toString()))
                                     .map(String::valueOf).orElse("") : "");
                     return alarmInfo;
-                }).sorted(Comparator.comparing(PdfContextAlarmInfo::getAlarmCreatedTime))
+                }).sorted(Comparator.comparing(PdfContextAlarmInfo::getAlarmCreatedTimeEpoch)
+                        .reversed())
                 .collect(Collectors.toList());
 
         context.setVariable("paginatedAlarmData", paginateList(contextAlarm, 16, 11));
@@ -131,6 +133,7 @@ public class GranulesAlarmPdfGenerationContext extends GranulesBasePdfGeneration
     @NoArgsConstructor
     public static class PdfContextAlarmInfo {
         private String alarmType;
+        private long alarmCreatedTimeEpoch;
         private String alarmCreatedDate;
         private String alarmCreatedTime;
         private String alarmCreatedTimeOnly;

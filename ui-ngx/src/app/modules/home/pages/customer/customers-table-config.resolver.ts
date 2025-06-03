@@ -60,7 +60,7 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
       this.config.detailsPanelEnabled = false;
     }
     this.config.columns.push(
-      new DateEntityTableColumn<Customer>('createdTime', 'common.created-time', this.datePipe, '150px'),
+      // new DateEntityTableColumn<Customer>('createdTime', 'common.created-time', this.datePipe, '150px'),
       new EntityTableColumn<Customer>('title', 'customer.title', '25%'),
       new EntityTableColumn<Customer>('email', 'contact.email', '25%'),
     );
@@ -132,7 +132,7 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
     this.config.deleteEntity = id => this.customerService.deleteCustomer(id.id);
     this.config.onEntityAction = action => this.onCustomerAction(action, this.config);
     this.config.deleteEnabled = (customer) => customer && (!customer.additionalInfo || !customer.additionalInfo.isPublic);
-    this.config.entitySelectionEnabled = (customer) => customer && (!customer.additionalInfo || !customer.additionalInfo.isPublic);
+    this.config.entitySelectionEnabled = (customer) => false;
     this.config.detailsReadonly = (customer) => customer && customer.additionalInfo && customer.additionalInfo.isPublic;
   }
 

@@ -84,7 +84,7 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
     this.config.entityResources = entityTypeResources.get(EntityType.USER);
 
     this.config.columns.push(
-      new DateEntityTableColumn<User>('createdTime', 'common.created-time', this.datePipe, '150px'),
+      //new DateEntityTableColumn<User>('createdTime', 'common.created-time', this.datePipe, '150px'),
       new EntityTableColumn<User>('firstName', 'user.first-name', '33%'),
       new EntityTableColumn<User>('lastName', 'user.last-name', '33%'),
       new EntityTableColumn<User>('additionalInfo.role', 'user.role', '20%',
