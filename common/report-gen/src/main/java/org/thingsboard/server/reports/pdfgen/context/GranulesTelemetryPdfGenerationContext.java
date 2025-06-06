@@ -92,7 +92,7 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
                     });
                     telemetry.setTs(String.valueOf(entry.getKey()));
                     return telemetry;
-                }).sorted(Comparator.comparing(PdfContextTelemetry::getDateTimeEpoch).reversed()).collect(Collectors.toList());
+                }).sorted(Comparator.comparing(PdfContextTelemetry::getDateTimeEpoch)).collect(Collectors.toList());
         final MinMaxHolder holder = new MinMaxHolder();
         log.info("minTemperature: {}, maxTemperature: {}, minHumidity: {}, maxHumidity: {}",
                 holder.getMinTemperature(), holder.getMaxTemperature(), holder.getMinHumidity(), holder.getMaxHumidity());

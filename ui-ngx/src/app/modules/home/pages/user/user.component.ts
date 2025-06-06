@@ -103,7 +103,7 @@ export class UserComponent extends EntityComponent<User> {
             homeDashboardId: [entity && entity.additionalInfo ? entity.additionalInfo.homeDashboardId : null],
             homeDashboardHideToolbar: [entity && entity.additionalInfo &&
             isDefinedAndNotNull(entity.additionalInfo.homeDashboardHideToolbar) ? entity.additionalInfo.homeDashboardHideToolbar : true],
-            role: [entity && entity.additionalInfo && entity.additionalInfo.role ? entity.additionalInfo.role : null],
+            role: [entity && entity.additionalInfo && entity.additionalInfo.role ? entity.additionalInfo.role : null, [Validators.required]],
             assignedDashboardIds: [entity && entity.additionalInfo ? entity.additionalInfo.assignedDashboardIds : []]
           }
         )

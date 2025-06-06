@@ -54,7 +54,7 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
 
   activationMethodTranslations = activationMethodTranslations;
 
-  activationMethod = ActivationMethod.DISPLAY_ACTIVATION_LINK;
+  activationMethod = ActivationMethod.DISPLAY_TEMPORARY_PASSWORD;
 
   @ViewChild(UserComponent, {static: true}) userComponent: UserComponent;
 

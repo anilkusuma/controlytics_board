@@ -47,7 +47,7 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
         context.setVariable("userName", userName);
         context.setVariable("startDate", getFormattedDateInIst(startTime));
         context.setVariable("startTime", getFormattedTimeOnlyInIst(startTime));
-        context.setVariable("endDate", getFormattedDateInIst(startTime));
+        context.setVariable("endDate", getFormattedDateInIst(endTime));
         context.setVariable("endTime", getFormattedTimeOnlyInIst(endTime));
         context.setVariable("printTime", getFormattedTimeInIst(new Date().getTime()));
         final List<PdfContextAuditLog> contextAuditLogs =
@@ -67,7 +67,7 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
                         .status(auditLog.getActionStatus().name())
                         .details(getAuditLogDetails(auditLog))
                         .build()
-                ).sorted(Comparator.comparing(PdfContextAuditLog::getCreatedTimeLong).reversed())
+                ).sorted(Comparator.comparing(PdfContextAuditLog::getCreatedTimeLong))
                         .collect(Collectors.toList());
         final List<List<PdfContextAuditLog>> paginatedAuditLogs = paginateList(contextAuditLogs, 15, 10);
         context.setVariable("paginatedAuditLogs", paginatedAuditLogs);

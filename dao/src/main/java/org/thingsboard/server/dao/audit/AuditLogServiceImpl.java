@@ -76,7 +76,7 @@ import static org.thingsboard.server.dao.service.Validator.validateId;
 public class AuditLogServiceImpl implements AuditLogService {
 
     private static final String INCORRECT_TENANT_ID = "Incorrect tenantId ";
-    private static final int MAX_AUDIT_LOGS_PER_PDF = 5000;
+    private static final int MAX_AUDIT_LOGS_PER_PDF = 8930; // 8930 is the maximum number of audit logs that can fit into a single A4 PDF page with default margins and font size.
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy & HH:mm:ss");
 
     @Autowired
@@ -141,8 +141,9 @@ public class AuditLogServiceImpl implements AuditLogService {
         PageData<AuditLog> pageData = auditLogDao.findAuditLogsByTenantId(tenantId.getId(), actionTypes,
                 pageLink);
         final List<AuditLog> auditLogs = new ArrayList<>(pageData.getData());
-        while (pageData.hasNext() || auditLogs.size() > MAX_AUDIT_LOGS_PER_PDF) {
-            pageData = auditLogDao.findAuditLogsByTenantId(tenantId.getId(), actionTypes, pageLink.nextPageLink());
+        while (pageData.hasNext() && auditLogs.size() < MAX_AUDIT_LOGS_PER_PDF) {
+            pageLink = pageLink.nextPageLink();
+            pageData = auditLogDao.findAuditLogsByTenantId(tenantId.getId(), actionTypes, pageLink);
             auditLogs.addAll(pageData.getData());
         }
         return pdfGeneratorFactory.getGenerator(PdfType.AUDIT_LOGS_REPORT).generatePdf(UUID.randomUUID().toString(),
