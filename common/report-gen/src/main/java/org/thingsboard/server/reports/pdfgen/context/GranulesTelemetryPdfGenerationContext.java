@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.thingsboard.server.common.data.kv.TsKvEntry;
 import org.thymeleaf.context.Context;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -50,9 +52,15 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
         final List<TsKvEntry> telemetryEntries = getTelemetryEntries();
         final Map<Long, List<TsKvEntry>> telemetryEntriesByTs = telemetryEntries.stream()
                 .collect(Collectors.groupingBy(TsKvEntry::getTs));
+        final Map<String, List<TsKvEntry>> result = telemetryEntriesByTs.entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> getFormattedTimeInIst(e.getKey()), // assuming you're using org.joda.time.DateTime
+                        Map.Entry::getValue
+                ));
         final List<PdfContextTelemetry> contextTelemetry = telemetryEntriesByTs.entrySet().stream()
                 .map(entry -> {
                     final PdfContextTelemetry telemetry = new PdfContextTelemetry();
+
                     telemetry.setDateTimeEpoch(entry.getKey());
                     telemetry.setDateTime(getFormattedTimeInIst(entry.getKey()));
                     telemetry.setDate(getFormattedDateInIst(entry.getKey()));

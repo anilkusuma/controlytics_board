@@ -247,10 +247,6 @@ public class TimescaleTimeseriesDao extends AbstractSqlTimeseriesDao implements 
         Integer keyId = keyDictionaryDao.getOrSaveKeyId(query.getKey());
         final ReadTsKvQueryResult queryResult = findAllAsyncWithLimit(entityId, query);
 
-        if (queryResult.getData().isEmpty()) {
-            return queryResult;
-        }
-
         queryResult.getData().sort(Comparator.comparingLong(TsKvEntry::getTs));
         final List<TsKvEntry> result = new ArrayList<>();
         for (long currentTime = query.getStartTs(); currentTime <= query.getEndTs(); currentTime += query.getInterval()) {

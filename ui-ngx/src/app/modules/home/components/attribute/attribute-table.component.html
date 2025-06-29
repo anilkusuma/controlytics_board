@@ -34,7 +34,7 @@
         </div>
         <span fxFlex></span>
         <button mat-icon-button
-                *ngIf="attributeScope !== attributeScopeTypes.CLIENT_SCOPE"
+                *ngIf="attributeScope !== attributeScopeTypes.CLIENT_SCOPE && userRole === UserRole.CONTROLYTICS_ADMIN"
                 [disabled]="isLoading$ | async"
                 (click)="addAttribute($event)"
                 matTooltip="{{ 'action.add' | translate }}"
@@ -86,6 +86,7 @@
         </span>
         <span fxFlex></span>
         <button [fxShow]="false"
+                *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
                 class="button-widget-action"
                 mat-icon-button [disabled]="isLoading$ | async"
                 matTooltip="{{ 'action.delete' | translate }}"
@@ -196,7 +197,11 @@
                 >
                 </tb-copy-button>
               </div>
-              <span [fxShow]="!isClientSideTelemetryTypeMap.get(attributeScope)">
+              <span [fxShow]="!isClientSideTelemetryTypeMap.get(attributeScope) && userRole === UserRole.CONTROLYTICS_ADMIN">
+                    class="tb-icon-button"
+                    matTooltip="{{ 'action.edit' | translate }}"
+                    matTooltipPosition="above"
+                    (click)="editAttribute($event, attribute)">
                 <mat-icon>edit</mat-icon>
               </span>
               <button mat-icon-button *ngIf="false"

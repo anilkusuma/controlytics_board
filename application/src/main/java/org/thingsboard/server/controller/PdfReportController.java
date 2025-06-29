@@ -23,6 +23,8 @@ import com.google.gson.JsonParseException;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +65,10 @@ import org.thingsboard.server.service.security.AccessValidator;
 import org.thingsboard.server.service.security.model.SecurityUser;
 import org.thingsboard.server.service.security.permission.Operation;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -82,7 +88,7 @@ public class PdfReportController extends BaseController {
     private static final String ALARM_QUERY_ASSIGNEE_DESCRIPTION = "A string value representing the assignee user id. For example, '784f394c-42b6-435a-983c-b7beff2784f9'";
     private static final String ALARM_QUERY_START_TIME_DESCRIPTION = "The start timestamp in milliseconds of the search time range over the Alarm class field: 'createdTime'.";
     private static final String ALARM_QUERY_END_TIME_DESCRIPTION = "The end timestamp in milliseconds of the search time range over the Alarm class field: 'createdTime'.";
-
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy & HH:mm");
 
     @Autowired
     private TimeseriesService tsService;
@@ -118,7 +124,7 @@ public class PdfReportController extends BaseController {
             @RequestParam(name = "timeZone", required = false) String timeZone,
             @Parameter(description = SORT_ORDER_DESCRIPTION, schema = @Schema(allowableValues = {"ASC", "DESC"}))
             @RequestParam(name = "orderBy", defaultValue = "DESC") String orderBy,
-            @RequestParam(name = "limit", defaultValue = "10000") Integer limit,
+            @RequestParam(name = "limit", defaultValue = "100000") Integer limit,
             @Parameter(schema = @Schema(allowableValues = {"GRANULES_DEVICE_REPORT"}))
             @RequestParam(name = "reportId") String reportId,
             @Parameter(description = STRICT_DATA_TYPES_DESCRIPTION)
@@ -188,6 +194,17 @@ public class PdfReportController extends BaseController {
             @Override
             public void onSuccess(List<TsKvEntry> data) {
                 try {
+
+                    final List<TSValueTesting> tsValueTestingList = data.stream()
+                            .map(tsKvEntry -> {
+                                TSValueTesting tsValueTesting = TSValueTesting.builder()
+                                        .temperature(tsKvEntry.getKey().equals("temperature") ? tsKvEntry.getValueAsString() : null)
+                                        .humidity(tsKvEntry.getKey().equals("humidity") ? tsKvEntry.getValueAsString() : null)
+                                        .build();
+                                tsValueTesting.setTime(getFormattedTimeInIst(tsKvEntry.getTs()));
+                                tsValueTesting.setTs(String.valueOf(tsKvEntry.getTs()));
+                                return tsValueTesting;
+                            }).collect(Collectors.toList());
                     final byte[] result = pdfGeneratorFactory.getGenerator(PdfType.valueOf(reportId.name()))
                             .generatePdf(UUID.randomUUID().toString(),
                                     GranulesTelemetryPdfGenerationContext.builder()
@@ -408,5 +425,38 @@ public class PdfReportController extends BaseController {
         ReportId(String displayName) {
             this.displayName = displayName;
         }
+    }
+
+    @Data
+    @Builder
+    public static class TSValueTesting {
+        private String temperature;
+        private String humidity;
+        private String time;
+        private String ts;
+
+        public String getTemperature() {
+            return temperature;
+        }
+
+        public String getHumidity() {
+            return humidity;
+        }
+        public String getTime() {
+            return time;
+        }
+        public String getTs() {
+            return ts;
+        }
+    }
+
+    protected String getFormattedTimeInIst(final long time) {
+        if (time == 0 || time == Long.MAX_VALUE) {
+            return "";
+        }
+
+        final ZoneId zoneId = ZoneId.of("Asia/Kolkata");
+        final LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), zoneId);
+        return dateTime.format(formatter);
     }
 }

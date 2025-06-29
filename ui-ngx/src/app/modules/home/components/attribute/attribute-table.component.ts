@@ -635,4 +635,5 @@ export class AttributeTableComponent extends PageComponent implements AfterViewI
     this.mode = 'default';
   }
 
+  protected readonly UserRole = UserRole;
 }
