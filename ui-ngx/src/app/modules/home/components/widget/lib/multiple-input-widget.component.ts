@@ -639,11 +639,12 @@ export class MultipleInputWidgetComponent extends PageComponent implements OnIni
       if (this.settings.remarksDropdownList !== undefined && this.settings.remarksDropdownList.split(',').length > 0) {
         remarksDropDownValues = this.settings.remarksDropdownList.split(',');
       }
+      remarksDropDownValues = remarksDropDownValues?.filter((value) => value.trim());
       this.ctx.dialogs.relogin(<ReLoginDialogComponentData> {
         remarksRequired: true,
         intervalRequired: false,
         timeRangeRequired: false,
-        remarksDropDownValues: remarksDropDownValues ?? []
+        remarksDropDownValues: remarksDropDownValues || undefined
       }).subscribe(
         (result) => {
           if (result.reloginStatus) {

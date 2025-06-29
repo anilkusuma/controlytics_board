@@ -51,7 +51,7 @@
             </mat-form-field>
             <mat-form-field class="tb-appearance-transparent">
               <mat-label translate>common.password</mat-label>
-              <input id="password-input" matInput type="password" formControlName="password"/>
+              <input id="password-input" matInput type="password" formControlName="password" tbNoCopyPaste/>
               <tb-toggle-password matSuffix></tb-toggle-password>
               <mat-icon matPrefix>lock</mat-icon>
             </mat-form-field>
@@ -74,9 +74,4 @@
       </form>
     </mat-card-content>
   </mat-card>
-  <div ngClass="tb-login-version tb-powered-by-footer">
-    <section data-html2canvas-ignore [ngStyle]="{'color': '#305680'}">
-          <span>Powered by <a href="https://controlytics.ai" target="_blank">TRH-MONITORING v.3.6.2</a></span>
-    </section>
-  </div>
 </div>

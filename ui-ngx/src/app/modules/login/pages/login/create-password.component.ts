@@ -66,9 +66,17 @@ export class CreatePasswordComponent extends PageComponent implements OnInit, On
   }
 
   onCreatePassword() {
+    const newPassword = this.createPassword.get('password').value;
+    const decodedActivateToken = this.base64Decode(this.activateToken);
+    
     if (this.createPassword.get('password').value !== this.createPassword.get('password2').value) {
       this.store.dispatch(new ActionNotificationShow({ message: this.translate.instant('login.passwords-mismatch-error'),
         type: 'error' }));
+    } else if (newPassword === decodedActivateToken) {
+      this.store.dispatch(new ActionNotificationShow({ 
+        message: this.translate.instant('login.temporary-password-reuse-error'),
+        type: 'error' 
+      }));
     } else {
       this.authService.activate(
         this.activateToken,

@@ -69,9 +69,17 @@ export class ResetPasswordComponent extends PageComponent implements OnInit, OnD
   }
 
   onResetPassword() {
+    const newPassword = this.resetPassword.get('newPassword').value;
+    const decodedResetToken = this.base64Decode(this.resetToken);
+    
     if (this.resetPassword.get('newPassword').value !== this.resetPassword.get('newPassword2').value) {
       this.store.dispatch(new ActionNotificationShow({ message: this.translate.instant('login.passwords-mismatch-error'),
         type: 'error' }));
+    } else if (newPassword === decodedResetToken) {
+      this.store.dispatch(new ActionNotificationShow({ 
+        message: this.translate.instant('login.temporary-password-reuse-error'),
+        type: 'error' 
+      }));
     } else {
       this.authService.resetPassword(
         this.resetToken,

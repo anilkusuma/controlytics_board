@@ -238,6 +238,12 @@ public class AuthController extends BaseController {
         String activateToken = new String(Base64.getDecoder().decode(activateRequest.getActivateToken().getBytes()));
         String password = activateRequest.getPassword();
         systemSecurityService.validatePassword(password, null);
+        
+        // Check if new password is same as temporary password
+        if (activateToken.equals(password)) {
+            throw new ThingsboardException("Cannot use temporary password as your new password", ThingsboardErrorCode.TEMPORARY_PASSWORD_REUSE_NOT_ALLOWED);
+        }
+        
         String encodedPassword = passwordEncoder.encode(password);
         UserCredentials credentials = userService.activateUserCredentials(TenantId.SYS_TENANT_ID, activateToken, encodedPassword);
         User user = userService.findUserById(TenantId.SYS_TENANT_ID, credentials.getUserId());
@@ -277,6 +283,12 @@ public class AuthController extends BaseController {
         UserCredentials userCredentials = userService.findUserCredentialsByResetToken(TenantId.SYS_TENANT_ID, resetToken);
         if (userCredentials != null) {
             systemSecurityService.validatePassword(password, userCredentials);
+            
+            // Check if new password is same as temporary password (reset token)
+            if (resetToken.equals(password)) {
+                throw new ThingsboardException("Cannot use temporary password as your new password", ThingsboardErrorCode.TEMPORARY_PASSWORD_REUSE_NOT_ALLOWED);
+            }
+            
             if (passwordEncoder.matches(password, userCredentials.getPassword())) {
                 throw new ThingsboardException("New password should be different from existing!", ThingsboardErrorCode.BAD_REQUEST_PARAMS);
             }

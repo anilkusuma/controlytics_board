@@ -3529,6 +3529,7 @@
         "create-password": "Create Password",
         "two-factor-authentication": "Two factor authentication",
         "passwords-mismatch-error": "Entered passwords must be same!",
+        "temporary-password-reuse-error": "Cannot use temporary password as your new password",
         "password-again": "Password again",
         "sign-in": "Please sign in",
         "username": "Username (email)",
