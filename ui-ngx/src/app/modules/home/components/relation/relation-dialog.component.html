@@ -32,12 +32,15 @@
     <fieldset [disabled]="isLoading$ | async">
       <tb-relation-type-autocomplete
         formControlName="type"
+        [allowedRelationTypes]="allowedRelationTypes"
         required="true">
       </tb-relation-type-autocomplete>
       <small>{{(direction === entitySearchDirection.FROM ?
           'relation.to-entity' : 'relation.from-entity') | translate}}</small>
       <tb-entity-list-select
         formControlName="targetEntityIds"
+        [allowedEntityTypes]="allowedEntityTypes"
+        [entityFilter]="entityFilter"
         required="true">
       </tb-entity-list-select>
       <tb-json-object-edit

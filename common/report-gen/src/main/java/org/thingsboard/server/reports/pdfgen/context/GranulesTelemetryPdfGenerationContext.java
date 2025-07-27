@@ -74,7 +74,7 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
                                         || (Objects.nonNull(super.temperatureNltValue) && doubleValue < super.temperatureNltValue)) {
                                     telemetry.setTempBolded(true);
                                 }
-                                telemetry.setTemperature(String.format("%.1f", Double.parseDouble(value)));
+                                telemetry.setTemperature(formatDecimalValue(Double.parseDouble(value)));
                             } else if (value != null) {
                                 telemetry.setTemperature(value);
                             } else {
@@ -89,7 +89,7 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
                                         || (Objects.nonNull(super.humidityNltValue) && doubleValue < super.humidityNltValue)) {
                                     telemetry.setHumBolded(true);
                                 }
-                                telemetry.setHumidity(String.format("%.1f", Double.parseDouble(value)));
+                                telemetry.setHumidity(formatDecimalValue(Double.parseDouble(value)));
                             } else if (value != null) {
                                 telemetry.setHumidity(value);
                             } else {
@@ -150,6 +150,16 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
                 maxHumidity = maxHumidity == null ? humidity : Math.max(maxHumidity, humidity);
             }
         }
+    }
+
+    private String formatDecimalValue(double value) {
+        // Format to 1 decimal place
+        String formatted = String.format("%.1f", value);
+        // Remove trailing .0
+        if (formatted.endsWith(".0")) {
+            return formatted.substring(0, formatted.length() - 2);
+        }
+        return formatted;
     }
 
     private String convertMsToReadableFormat(long milliseconds) {

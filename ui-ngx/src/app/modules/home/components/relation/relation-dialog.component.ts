@@ -28,10 +28,13 @@ import {
 } from '@shared/models/relation.models';
 import { EntityRelationService } from '@core/http/entity-relation.service';
 import { EntityId } from '@shared/models/id/entity-id';
-import { forkJoin, Observable } from 'rxjs';
+import { forkJoin, Observable, of } from 'rxjs';
+import { map, mergeMap } from 'rxjs/operators';
 import { JsonObjectEditComponent } from '@shared/components/json-object-edit.component';
 import { Router } from '@angular/router';
 import { DialogComponent } from '@shared/components/dialog.component';
+import { BaseData } from '@shared/models/base-data';
+import { EntityType } from '@shared/models/entity-type.models';
 
 export interface RelationDialogData {
   isAdd: boolean;
@@ -58,6 +61,11 @@ export class RelationDialogComponent extends DialogComponent<RelationDialogCompo
   @ViewChild('additionalInfoEdit', {static: true}) additionalInfoEdit: JsonObjectEditComponent;
 
   submitted = false;
+
+  entityFilter: (entities: Array<BaseData<EntityId>>) => Observable<Array<BaseData<EntityId>>>;
+  
+  allowedRelationTypes = [CONTAINS_TYPE];
+  allowedEntityTypes = [EntityType.DEVICE, EntityType.ASSET];
 
   constructor(protected store: Store<AppState>,
               protected router: Router,
@@ -88,6 +96,36 @@ export class RelationDialogComponent extends DialogComponent<RelationDialogCompo
         this.submitted = false;
       }
     );
+
+    // Initialize entity filter function
+    this.entityFilter = (entities: Array<BaseData<EntityId>>) => {
+      // Only filter if we're adding a new relation
+      if (!this.isAdd) {
+        return of(entities);
+      }
+
+      // For each entity, check if it already has any relations
+      const filterPromises = entities.map(entity => {
+
+        // Check if this device has any relations (as the "to" entity)
+        return this.entityRelationService.findByTo(entity.id).pipe(
+          map(relations => ({
+            entity,
+            hasRelations: relations && relations.length > 0
+          }))
+        );
+      });
+
+      // Wait for all relation checks to complete
+      return forkJoin(filterPromises).pipe(
+        map(results => {
+          // Filter out devices that already have relations
+          return results
+            .filter(result => !result.hasRelations)
+            .map(result => result.entity);
+        })
+      );
+    };
   }
 
   isErrorState(control: UntypedFormControl | null, form: FormGroupDirective | NgForm | null): boolean {

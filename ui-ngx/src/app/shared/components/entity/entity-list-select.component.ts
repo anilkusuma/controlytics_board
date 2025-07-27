@@ -22,6 +22,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { AliasEntityType, EntityType } from '@shared/models/entity-type.models';
 import { EntityService } from '@core/http/entity.service';
 import { EntityId } from '@shared/models/id/entity-id';
+import { BaseData } from '@shared/models/base-data';
+import { Observable } from 'rxjs';
 import { coerceBooleanProperty } from '@angular/cdk/coercion';
 
 interface EntityListSelectModel {
@@ -64,6 +66,9 @@ export class EntityListSelectComponent implements ControlValueAccessor, OnInit, 
   @Input()
   disabled: boolean;
 
+  @Input()
+  entityFilter: (entities: Array<BaseData<EntityId>>) => Observable<Array<BaseData<EntityId>>>;
+
   displayEntityTypeSelect: boolean;
 
   private readonly defaultEntityType: EntityType | AliasEntityType = null;
@@ -100,7 +105,13 @@ export class EntityListSelectComponent implements ControlValueAccessor, OnInit, 
   ngOnInit() {
     this.entityListSelectFormGroup.get('entityType').valueChanges.subscribe(
       (value) => {
-        this.updateView(value, this.modelValue.ids);
+        // Clear entity IDs when entity type changes
+        if (value !== this.modelValue.entityType) {
+          this.entityListSelectFormGroup.get('entityIds').patchValue([], {emitEvent: false});
+          this.updateView(value, []);
+        } else {
+          this.updateView(value, this.modelValue.ids);
+        }
       }
     );
     this.entityListSelectFormGroup.get('entityIds').valueChanges.subscribe(

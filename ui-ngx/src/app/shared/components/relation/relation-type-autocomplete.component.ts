@@ -63,6 +63,9 @@ export class RelationTypeAutocompleteComponent implements ControlValueAccessor, 
   @Input()
   subscriptSizing: SubscriptSizing = 'fixed';
 
+  @Input()
+  allowedRelationTypes: string[];
+
   @ViewChild('relationTypeInput', {static: true}) relationTypeInput: ElementRef;
 
   filteredRelationTypes: Observable<Array<string>>;
@@ -144,7 +147,12 @@ export class RelationTypeAutocompleteComponent implements ControlValueAccessor, 
 
   fetchRelationTypes(searchText?: string, strictMatch: boolean = false): Observable<Array<string>> {
     this.searchText = searchText;
-    return of(RelationTypes).pipe(
+    // Use allowedRelationTypes if provided, otherwise use all RelationTypes
+    const availableTypes = this.allowedRelationTypes && this.allowedRelationTypes.length > 0 
+      ? this.allowedRelationTypes 
+      : RelationTypes;
+      
+    return of(availableTypes).pipe(
       map(relationTypes => relationTypes.filter( relationType => {
         if (strictMatch) {
           return searchText ? relationType === searchText : false;

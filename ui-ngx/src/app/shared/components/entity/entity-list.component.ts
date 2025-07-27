@@ -26,7 +26,7 @@ import {
   ViewChild
 } from '@angular/core';
 import { ControlValueAccessor, UntypedFormBuilder, UntypedFormGroup, NG_VALUE_ACCESSOR, Validators } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { filter, map, mergeMap, share, tap } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
 import { AppState } from '@app/core/core.state';
@@ -94,6 +94,9 @@ export class EntityListComponent implements ControlValueAccessor, OnInit, AfterV
 
   @Input()
   hint: string;
+
+  @Input()
+  entityFilter: (entities: Array<BaseData<EntityId>>) => Observable<Array<BaseData<EntityId>>>;
 
   @ViewChild('entityInput') entityInput: ElementRef<HTMLInputElement>;
   @ViewChild('entityAutocomplete') matAutocomplete: MatAutocomplete;
@@ -236,9 +239,17 @@ export class EntityListComponent implements ControlValueAccessor, OnInit, AfterV
   fetchEntities(searchText?: string): Observable<Array<BaseData<EntityId>>> {
     this.searchText = searchText;
 
-    return this.entityService.getEntitiesByNameFilter(this.entityType, searchText,
+    let entities$ = this.entityService.getEntitiesByNameFilter(this.entityType, searchText,
       50, this.subType ? this.subType : '', {ignoreLoading: true}).pipe(
       map((data) => data ? data : []));
+
+    if (this.entityFilter) {
+      entities$ = entities$.pipe(
+        mergeMap(entities => this.entityFilter(entities))
+      );
+    }
+
+    return entities$;
   }
 
   onFocus() {
