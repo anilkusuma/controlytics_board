@@ -31,7 +31,6 @@ import {
 import { NotificationService } from '@core/http/notification.service';
 import { InboxTableHeaderComponent } from '@home/pages/notification/inbox/inbox-table-header.component';
 import { TranslateService } from '@ngx-translate/core';
-import { take } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import {
   InboxNotificationDialogComponent,
@@ -40,6 +39,12 @@ import {
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve } from '@angular/router';
 import { UtilsService } from '@core/services/utils.service';
+import { Store } from '@ngrx/store';
+import { AppState } from '@core/core.state';
+import { getCurrentAuthUser, selectUserDetails } from '@core/auth/auth.selectors';
+import { Authority } from '@shared/models/authority.enum';
+import { User, UserRole } from '@shared/models/user.model';
+import { take } from 'rxjs/operators';
 
 @Injectable()
 export class InboxTableConfigResolver implements Resolve<EntityTableConfig<Notification>> {
@@ -50,11 +55,41 @@ export class InboxTableConfigResolver implements Resolve<EntityTableConfig<Notif
               private translate: TranslateService,
               private dialog: MatDialog,
               private datePipe: DatePipe,
-              private utilsService: UtilsService) {
+              private utilsService: UtilsService,
+              private store: Store<AppState>) {
 
     this.config.entityType = EntityType.NOTIFICATION;
     this.config.detailsPanelEnabled = false;
     this.config.addEnabled = false;
+
+    // Get user details to check role
+    const authUser = getCurrentAuthUser(this.store);
+    let userRole: string = null;
+
+    this.store.select(selectUserDetails).pipe(take(1)).subscribe(
+      (user: User) => {
+        userRole = user?.additionalInfo?.role;
+      }
+    );
+
+    // Function to check if user can delete/select
+    const canDeleteAndSelect = () => {
+      if (authUser.authority === Authority.SYS_ADMIN) {
+        return true;
+      }
+      if (authUser.authority === Authority.TENANT_ADMIN && userRole === UserRole.CONTROLYTICS_ADMIN) {
+        return true;
+      }
+      return false;
+    };
+
+    // Apply permissions
+    this.config.deleteEnabled = canDeleteAndSelect;
+    this.config.entitySelectionEnabled = canDeleteAndSelect;
+    
+    // Hide delete button completely for unauthorized users
+    this.config.entitiesDeleteEnabled = canDeleteAndSelect();
+
     this.config.rowPointer = true;
     this.config.entityTranslations = entityTypeTranslations.get(EntityType.NOTIFICATION);
     this.config.entityResources = {} as EntityTypeResource<Notification>;

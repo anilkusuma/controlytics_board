@@ -770,6 +770,23 @@ export class MenuService {
         type: 'link',
         path: '/security-settings/general',
         icon: 'settings_applications'
+      },
+      {
+        id: 'notifications_center',
+        name: 'notification.notification-center',
+        type: 'link',
+        path: '/notification',
+        icon: 'mdi:message-badge',
+        pages: [
+          {
+            id: 'notification_inbox',
+            name: 'notification.inbox',
+            fullName: 'notification.notification-inbox',
+            type: 'link',
+            path: '/notification/inbox',
+            icon: 'inbox'
+          }
+        ]
       }
     );
     return sections;
@@ -925,25 +942,30 @@ export class MenuService {
         icon: 'dashboards'
       }
     );
-    sections.push(
-      {
-        id: 'notifications_center',
-        name: 'notification.notification-center',
-        type: 'link',
-        path: '/notification',
-        icon: 'mdi:message-badge',
-        pages: [
-          {
-            id: 'notification_inbox',
-            name: 'notification.inbox',
-            fullName: 'notification.notification-inbox',
-            type: 'link',
-            path: '/notification/inbox',
-            icon: 'inbox'
-          }
-        ]
-      }
-    );
+
+    // Hide Notification Center for Operator and Supervisor roles
+    if (role !== UserRole.OPERATOR && role !== UserRole.SUPERVISOR) {
+      sections.push(
+        {
+          id: 'notifications_center',
+          name: 'notification.notification-center',
+          type: 'link',
+          path: '/notification',
+          icon: 'mdi:message-badge',
+          pages: [
+            {
+              id: 'notification_inbox',
+              name: 'notification.inbox',
+              fullName: 'notification.notification-inbox',
+              type: 'link',
+              path: '/notification/inbox',
+              icon: 'inbox'
+            }
+          ]
+        }
+      );
+    }
+
     sections.push(
       {
         id: 'audit-logs',

@@ -46,6 +46,11 @@ import {
   ReLoginDialogComponentData, ReLoginDialogComponentResponse
 } from "@home/dialogs/re-login/relogin-dialog.component";
 import {filter, map} from "rxjs/operators";
+import {UserRole} from '@shared/models/user.model';
+import {selectUserDetails} from '@core/auth/auth.selectors';
+import {select, Store} from '@ngrx/store';
+import {AppState} from '@core/core.state';
+import {take} from 'rxjs/operators';
 
 export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLink> {
 
@@ -53,6 +58,7 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
               private translate: TranslateService,
               private datePipe: DatePipe,
               private dialog: MatDialog,
+              private store: Store<AppState>,
               private auditLogMode: AuditLogMode = AuditLogMode.TENANT,
               public entityId: EntityId = null,
               public userId: UserId = null,
@@ -102,11 +108,22 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
     );
 
     if (this.auditLogMode === AuditLogMode.TENANT) {
-      this.headerActionDescriptors.push({
-        name: this.translate.instant('audit-log.download-audit-logs'),
-        icon: 'mdi:download',
-        isEnabled: () => true,
-        onAction: ($event) => {
+      // Get current user role synchronously
+      let userRole: string;
+      this.store.pipe(
+        select(selectUserDetails),
+        take(1)
+      ).subscribe(userDetails => {
+        userRole = userDetails?.additionalInfo?.role;
+      });
+      
+      // Only show download button if user is NOT Admin or Maintenance
+      if (userRole !== UserRole.ADMIN && userRole !== UserRole.MAINTENANCE) {
+        this.headerActionDescriptors.push({
+          name: this.translate.instant('audit-log.download-audit-logs'),
+          icon: 'mdi:download',
+          isEnabled: () => true,
+          onAction: ($event) => {
           this.dialog.open<ReloginDialogComponent, ReLoginDialogComponentData, ReLoginDialogComponentResponse>(ReloginDialogComponent, {
             disableClose: true,
             panelClass: ['tb-dialog', 'tb-fullscreen-dialog'],
@@ -135,6 +152,7 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
           );
         }
       });
+      }
     }
 
     // this.cellActionDescriptors.push(

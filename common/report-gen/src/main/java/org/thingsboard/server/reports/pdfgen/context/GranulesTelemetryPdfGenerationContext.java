@@ -23,12 +23,14 @@ import org.thymeleaf.context.Context;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Data
 @Slf4j
@@ -36,9 +38,16 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode(callSuper = true)
 public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenerationContext {
 
+    // Default values for MKT calculation
+    private static final double DEFAULT_DELTA_H = 83144.0; // Activation energy in J/mol
+    private static final double DEFAULT_GAS_CONSTANT_R = 8.3144; // Universal gas constant in J/(mol·K)
+
     private final long intervalInMs;
     private final long thresholdInMs;
     private final List<TsKvEntry> telemetryEntries;
+    private final Double deltaH;
+    private final Double gasConstantR;
+    private final Boolean isMktCalculationEnabled;
 
     @Override
     public Context asContext() {
@@ -74,7 +83,8 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
                                         || (Objects.nonNull(super.temperatureNltValue) && doubleValue < super.temperatureNltValue)) {
                                     telemetry.setTempBolded(true);
                                 }
-                                telemetry.setTemperature(formatDecimalValue(Double.parseDouble(value)));
+                                Integer tempDecimals = (Integer) context.getVariable("temperatureDecimals");
+                                telemetry.setTemperature(formatValueWithPrecision(Double.parseDouble(value), tempDecimals));
                             } else if (value != null) {
                                 telemetry.setTemperature(value);
                             } else {
@@ -82,20 +92,27 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
                             }
                             telemetry.setUom("°C");
                         } else if (tsKvEntry.getKey().equals("humidity")) {
-                            String value = tsKvEntry.getValueAsString();
-                            if (value != null && !value.isEmpty() && value.matches("-?\\d+(\\.\\d+)?")) {
-                                final double doubleValue = Double.parseDouble(value);
-                                if ((Objects.nonNull(super.humidityNmtValue) && doubleValue > super.humidityNmtValue)
-                                        || (Objects.nonNull(super.humidityNltValue) && doubleValue < super.humidityNltValue)) {
-                                    telemetry.setHumBolded(true);
-                                }
-                                telemetry.setHumidity(formatDecimalValue(Double.parseDouble(value)));
-                            } else if (value != null) {
-                                telemetry.setHumidity(value);
+                            // Check if humidity is disabled for this device
+                            Boolean isHumidityDisabled = (Boolean) context.getVariable("isHumidityDisabled");
+                            if (Boolean.TRUE.equals(isHumidityDisabled)) {
+                                telemetry.setHumidity("");
                             } else {
-                                telemetry.setHumidity("N/A");
+                                String value = tsKvEntry.getValueAsString();
+                                if (value != null && !value.isEmpty() && value.matches("-?\\d+(\\.\\d+)?")) {
+                                    final double doubleValue = Double.parseDouble(value);
+                                    if ((Objects.nonNull(super.humidityNmtValue) && doubleValue > super.humidityNmtValue)
+                                            || (Objects.nonNull(super.humidityNltValue) && doubleValue < super.humidityNltValue)) {
+                                        telemetry.setHumBolded(true);
+                                    }
+                                    Integer humidDecimals = (Integer) context.getVariable("humidityDecimals");
+                                    telemetry.setHumidity(formatValueWithPrecision(Double.parseDouble(value), humidDecimals));
+                                } else if (value != null) {
+                                    telemetry.setHumidity(value);
+                                } else {
+                                    telemetry.setHumidity("N/A");
+                                }
+                                telemetry.setUom("%RH");
                             }
-                            telemetry.setUom("%RH");
                         }
                     });
                     telemetry.setTs(String.valueOf(entry.getKey()));
@@ -109,6 +126,25 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
         context.setVariable("maxTemperature", holder.getMaxTemperature());
         context.setVariable("minHumidity", holder.getMinHumidity());
         context.setVariable("maxHumidity", holder.getMaxHumidity());
+        
+        // Get MKT parameters from shared attributes (set by parent context)
+        Boolean mktEnabled = (Boolean) context.getVariable("isMktCalculationEnabled");
+        Double deltaHFromAttr = (Double) context.getVariable("deltaH");
+        Double gasConstantRFromAttr = (Double) context.getVariable("gasConstantR");
+        
+        // Calculate MKT if enabled
+        if (Boolean.TRUE.equals(mktEnabled)) {
+            // Use provided values or defaults
+            double deltaHValue = deltaHFromAttr != null ? deltaHFromAttr : DEFAULT_DELTA_H;
+            double gasConstantRValue = gasConstantRFromAttr != null ? gasConstantRFromAttr : DEFAULT_GAS_CONSTANT_R;
+            
+            Double mktValue = calculateMKT(contextTelemetry, deltaHValue, gasConstantRValue);
+            context.setVariable("mktValue", mktValue != null ? String.format("%.1f", mktValue) : "N/A");
+            context.setVariable("isMktCalculationEnabled", true);
+        } else {
+            context.setVariable("isMktCalculationEnabled", false);
+        }
+        
         context.setVariable("paginatedTelemetryData", paginateList(contextTelemetry, 28, 18));
         return context;
     }
@@ -153,13 +189,77 @@ public class GranulesTelemetryPdfGenerationContext extends GranulesBasePdfGenera
     }
 
     private String formatDecimalValue(double value) {
-        // Format to 1 decimal place
-        String formatted = String.format("%.1f", value);
-        // Remove trailing .0
-        if (formatted.endsWith(".0")) {
-            return formatted.substring(0, formatted.length() - 2);
+        // Preserve original decimal precision
+        String stringValue = String.valueOf(value);
+        
+        // Handle scientific notation
+        if (stringValue.contains("E")) {
+            return String.format("%.1f", value);
         }
-        return formatted;
+        
+        // For whole numbers, ensure .0 is preserved
+        if (value == Math.floor(value) && !Double.isInfinite(value)) {
+            return String.format("%.1f", value);
+        }
+        
+        // For decimal numbers, preserve their precision
+        return stringValue;
+    }
+    
+    private String formatValueWithPrecision(Double value, Integer decimals) {
+        if (value == null) {
+            return "NA";
+        }
+        
+        // If decimals is not set, mirror the input data
+        if (decimals == null) {
+            String stringValue = String.valueOf(value);
+            
+            // Handle scientific notation
+            if (stringValue.contains("E")) {
+                return stringValue;
+            }
+            
+            // For whole numbers, don't add .0
+            if (value == Math.floor(value) && !Double.isInfinite(value)) {
+                return String.valueOf(value.intValue());
+            }
+            
+            // For decimal numbers, preserve their precision
+            return stringValue;
+        }
+        
+        // If decimals is set, format with specified precision
+        String format = "%%.%df".formatted(decimals);
+        return String.format(format, value);
+    }
+
+    private Double calculateMKT(List<PdfContextTelemetry> telemetryData, double deltaH, double gasConstantR) {
+        List<Double> validTemperatures = new ArrayList<>();
+        
+        for (PdfContextTelemetry entry : telemetryData) {
+            String tempStr = entry.getTemperature();
+            Double temp = parse(tempStr);
+            
+            // Only include valid numeric temperature values, skip NA/OL/Error entries entirely
+            if (temp != null && !tempStr.equals("NA") && !tempStr.equals("OL") && !tempStr.equals("Error")) {
+                validTemperatures.add(temp + 273.15); // Convert to Kelvin
+            }
+            // Skip invalid entries - don't use previous valid value
+        }
+        
+        if (validTemperatures.isEmpty()) {
+            return null;
+        }
+        
+        // MKT = -ΔH/R × ln(Σ(exp(-ΔH/(R×Ti)))/n)
+        double sum = 0.0;
+        for (Double tempKelvin : validTemperatures) {
+            sum += Math.exp(-deltaH / (gasConstantR * tempKelvin));
+        }
+        
+        double mktKelvin = -deltaH / (gasConstantR * Math.log(sum / validTemperatures.size()));
+        return mktKelvin - 273.15; // Convert back to Celsius
     }
 
     private String convertMsToReadableFormat(long milliseconds) {

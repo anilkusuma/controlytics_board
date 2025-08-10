@@ -47,6 +47,12 @@ public class GranulesBasePdfGenerationContext extends PdfGenerationContext {
     protected static final String LOCATION_ATTRIBUTE_KEY = "Location";
     protected static final String BUILDING_ATTRIBUTE_KEY = "Building";
     protected static final String PLANT_ATTRIBUTE_KEY = "Plant";
+    protected static final String MKT_CALCULATION_ENABLED_ATTRIBUTE_KEY = "isMktCalculationEnabled";
+    protected static final String IS_HUMIDITY_DISABLED_ATTRIBUTE_KEY = "isHumidityDisabled";
+    protected static final String DELTA_H_ATTRIBUTE_KEY = "deltaH";
+    protected static final String GAS_CONSTANT_R_ATTRIBUTE_KEY = "gasConstantR";
+    protected static final String TEMPERATURE_DECIMALS_ATTRIBUTE_KEY = "temp_decimals";
+    protected static final String HUMIDITY_DECIMALS_ATTRIBUTE_KEY = "humid_decimals";
 
     protected final TenantId tenantId;
     protected final String reportId;
@@ -120,8 +126,26 @@ public class GranulesBasePdfGenerationContext extends PdfGenerationContext {
                 context.setVariable("deviceBuilding", attributeKvEntry.getStrValue().orElse(""));
             } else if (attributeKvEntry.getKey().equals(PLANT_ATTRIBUTE_KEY)) {
                 context.setVariable("devicePlant", attributeKvEntry.getStrValue().orElse(""));
+            } else if (attributeKvEntry.getKey().equals(IS_HUMIDITY_DISABLED_ATTRIBUTE_KEY)) {
+                context.setVariable("isHumidityDisabled", attributeKvEntry.getBooleanValue().orElse(false));
+            } else if (attributeKvEntry.getKey().equals(MKT_CALCULATION_ENABLED_ATTRIBUTE_KEY)) {
+                context.setVariable("isMktCalculationEnabled", attributeKvEntry.getBooleanValue().orElse(false));
+            } else if (attributeKvEntry.getKey().equals(DELTA_H_ATTRIBUTE_KEY)) {
+                context.setVariable("deltaH", attributeKvEntry.getDoubleValue().orElse(null));
+            } else if (attributeKvEntry.getKey().equals(GAS_CONSTANT_R_ATTRIBUTE_KEY)) {
+                context.setVariable("gasConstantR", attributeKvEntry.getDoubleValue().orElse(null));
+            } else if (attributeKvEntry.getKey().equals(TEMPERATURE_DECIMALS_ATTRIBUTE_KEY)) {
+                context.setVariable("temperatureDecimals", attributeKvEntry.getLongValue().map(Long::intValue).orElse(null));
+            } else if (attributeKvEntry.getKey().equals(HUMIDITY_DECIMALS_ATTRIBUTE_KEY)) {
+                context.setVariable("humidityDecimals", attributeKvEntry.getLongValue().map(Long::intValue).orElse(null));
             }
         });
+        
+        // Set default value if isHumidityDisabled is not present
+        if (!context.containsVariable("isHumidityDisabled")) {
+            context.setVariable("isHumidityDisabled", false);
+        }
+        
         return context;
     }
 
@@ -138,16 +162,43 @@ public class GranulesBasePdfGenerationContext extends PdfGenerationContext {
     protected String format(final Object value) {
         if (Objects.isNull(value)) return null;
         if ((value instanceof Double)) {
-            return String.format("%.1f", value);
+            Double doubleValue = (Double) value;
+            // For whole numbers, ensure .0 is preserved
+            if (doubleValue == Math.floor(doubleValue) && !Double.isInfinite(doubleValue)) {
+                return String.format("%.1f", doubleValue);
+            }
+            // For decimal numbers, preserve their precision
+            String stringValue = String.valueOf(doubleValue);
+            if (stringValue.contains("E")) {
+                return String.format("%.1f", doubleValue);
+            }
+            return stringValue;
         }
         if ((value instanceof Float)) {
-            return String.format("%.1f", value);
+            Float floatValue = (Float) value;
+            // For whole numbers, ensure .0 is preserved
+            if (floatValue == Math.floor(floatValue) && !Float.isInfinite(floatValue)) {
+                return String.format("%.1f", floatValue);
+            }
+            // For decimal numbers, preserve their precision
+            String stringValue = String.valueOf(floatValue);
+            if (stringValue.contains("E")) {
+                return String.format("%.1f", floatValue);
+            }
+            return stringValue;
         }
         if ((value instanceof Long)) {
             return String.format("%d", value);
         }
         if ((value instanceof String) && ((String) value).matches("-?\\d+(\\.\\d+)?")) {
-            return String.format("%.1f", Double.parseDouble((String) value));
+            String stringValue = (String) value;
+            double doubleValue = Double.parseDouble(stringValue);
+            // Preserve original string representation
+            if (stringValue.contains(".")) {
+                return stringValue;
+            } else {
+                return String.format("%.1f", doubleValue);
+            }
         }
         return null;
     }

@@ -204,6 +204,7 @@
             <td>
                 <label>Temp. Limit</label>
                 <span class="colon"> : </span>
+                <span th:if="${temperatureNmtEnabled == false && temperatureNltEnabled == false}">NIL</span>
                 <span th:if="${temperatureNmtEnabled == true}"
                       th:text="'NMT ' + ${temperatureNmtValue}"></span>
                 <span th:if="${temperatureNmtEnabled == true && temperatureNltEnabled==true}">,</span>
@@ -213,41 +214,46 @@
             <td>
                 <label>RH Limit</label>
                 <span class="colon"> : </span>
-                <span th:if="${humidityNmtEnabled == true}" th:text="'NMT ' + ${humidityNmtValue}"></span>
-                <span th:if="${humidityNmtEnabled == true && humidityNltEnabled==true}">,</span>
-                <span th:if="${humidityNltEnabled == true}" th:text="'NLT ' + ${humidityNltValue}"></span>
+                <span th:if="${isHumidityDisabled == true}">NIL</span>
+                <span th:if="${isHumidityDisabled != true}">
+                    <span th:if="${humidityNmtEnabled == false && humidityNltEnabled == false}">NIL</span>
+                    <span th:if="${humidityNmtEnabled == true}" th:text="'NMT ' + ${humidityNmtValue}"></span>
+                    <span th:if="${humidityNmtEnabled == true && humidityNltEnabled==true}">,</span>
+                    <span th:if="${humidityNltEnabled == true}" th:text="'NLT ' + ${humidityNltValue}"></span>
+                </span>
             </td>
         </tr>
         <tr>
             <td>
-                <span th:if="${temperatureNmtEnabled == false && temperatureNltEnabled == false}">
-                    <label>Temp </label><span class="colon"> : </span><span>Recording only for information</span>
-                </span>
-                <span th:if="${temperatureNmtEnabled == true && maxTemperature != null}">
+                <span th:if="${maxTemperature != null}">
                     <label>Temp. Max</label><span class="colon"> : </span><span th:text="${maxTemperature}"></span>
                 </span>
-                <span
-                        th:if="${temperatureNmtEnabled == true  && maxTemperature != null && temperatureNltEnabled == true && minTemperature != null}">,</span>
-                <span th:if="${temperatureNltEnabled == true && minTemperature != null}">
+                <span th:if="${maxTemperature != null && minTemperature != null}">, </span>
+                <span th:if="${minTemperature != null}">
                     <label>Temp. Min</label><span class="colon"> : </span><span th:text="${minTemperature}"></span>
                 </span>
             </td>
             <td>
-                <span th:if="${humidityNmtEnabled == false && humidityNltEnabled == false}">
-                    <label>RH </label><span class="colon"> : </span><span>Recording only for information</span>
+                <span th:if="${isHumidityDisabled == true}">
+                    <label>RH Max</label><span class="colon"> : </span><span>NIL</span>, 
+                    <label>RH Min</label><span class="colon"> : </span><span>NIL</span>
                 </span>
-                <span th:if="${humidityNmtEnabled == true && maxHumidity != null}">
-                    <label>RH Max</label><span class="colon"> : </span><span th:text="${maxHumidity}"></span>
-                </span>
-                <span th:if="${humidityNmtEnabled == true && maxHumidity != null && humidityNltEnabled==true && minHumidity != null}">,</span>
-                <span th:if="${humidityNltEnabled == true && minHumidity != null}">
-                    <label>RH Min</label><span class="colon"> : </span><span th:text="${minHumidity}"></span>
+                <span th:if="${isHumidityDisabled != true}">
+                    <span th:if="${maxHumidity != null}">
+                        <label>RH Max</label><span class="colon"> : </span><span th:text="${maxHumidity}"></span>
+                    </span>
+                    <span th:if="${maxHumidity != null && minHumidity != null}">, </span>
+                    <span th:if="${minHumidity != null}">
+                        <label>RH Min</label><span class="colon"> : </span><span th:text="${minHumidity}"></span>
+                    </span>
                 </span>
             </td>
         </tr>
         <tr>
             <td>
-
+                <span th:if="${isMktCalculationEnabled == true && mktValue != null}">
+                    <label>MKT</label><span class="colon"> : </span><span th:text="${mktValue}"></span>
+                </span>
             </td>
             <td>
                 <label>Interval</label><span class="colon"> : </span><span th:text="${readableInterval}"></span>
@@ -324,30 +330,6 @@
             </div>
         </div>
 
-        <table style="width: 100%; margin-top: 10px;">
-            <tr>
-                <td style="width: 15%; vertical-align: top;">Reviewed By:</td>
-                <td style="width: 85%;">
-                    <table style="border: 1px solid black; border-collapse: collapse; width: 80%;">
-                        <thead>
-                        <tr>
-                            <th style="font-weight: normal; border: 1px solid black; padding: 5px; text-align:
-                                     center;">Sign
-                            </th>
-                            <th style="border: 1px solid black; padding: 5px; text-align: center; font-weight: normal">
-                                Date</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td style="border: 1px solid black; padding: 10px; text-align: center;"><br></br></td>
-                            <td style="border: 1px solid black; padding: 10px; text-align: center;"><br></br></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-        </table>
     </div>
     <div th:replace="~{::footer}"></div>
 </div>

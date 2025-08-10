@@ -28,6 +28,7 @@ public class PdfGeneratorFactory {
     private final IPdfGeneratorService granulesTimeseriesPdfReportGenerator;
     private final IPdfGeneratorService auditLogReportGenerator;
     private final IPdfGeneratorService granulesAlarmReportGenerator;
+    private final IPdfGeneratorService trendPdfReportGenerator;
 
     public PdfGeneratorFactory(@Qualifier(value = "timeseriesPdfReportGenerator")
                                final IPdfGeneratorService timeseriesPdfReportGenerator,
@@ -36,11 +37,14 @@ public class PdfGeneratorFactory {
                                @Qualifier(value = "granulesTimeseriesPdfReportGenerator")
                                final IPdfGeneratorService granulesTimeseriesPdfReportGenerator,
                                @Qualifier(value = "granulesAlarmPdfReportGenerator")
-                               final IPdfGeneratorService granulesAlarmReportGenerator) {
+                               final IPdfGeneratorService granulesAlarmReportGenerator,
+                               @Qualifier(value = "trendPdfReportGenerator")
+                               final IPdfGeneratorService trendPdfReportGenerator) {
         this.timeseriesPdfReportGenerator = timeseriesPdfReportGenerator;
         this.auditLogReportGenerator = auditLogReportGenerator;
         this.granulesTimeseriesPdfReportGenerator = granulesTimeseriesPdfReportGenerator;
         this.granulesAlarmReportGenerator = granulesAlarmReportGenerator;
+        this.trendPdfReportGenerator = trendPdfReportGenerator;
     }
 
     public IPdfGeneratorService getGenerator(final PdfType pdfType) {
@@ -49,6 +53,7 @@ public class PdfGeneratorFactory {
             case TELEMETRY_REPORT -> timeseriesPdfReportGenerator;
             case GRANULES_DEVICE_TIMESERIES_REPORT -> granulesTimeseriesPdfReportGenerator;
             case GRANULES_ALARM_REPORT -> granulesAlarmReportGenerator;
+            case TREND_REPORT -> trendPdfReportGenerator;
             default -> throw new IllegalArgumentException("Unsupported pdf type: " + pdfType);
         };
     }

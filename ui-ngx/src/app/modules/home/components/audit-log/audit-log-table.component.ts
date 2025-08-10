@@ -125,6 +125,7 @@ export class AuditLogTableComponent implements OnInit {
       this.translate,
       this.datePipe,
       this.dialog,
+      this.store,
       this.auditLogMode,
       this.entityIdValue,
       this.userIdValue,

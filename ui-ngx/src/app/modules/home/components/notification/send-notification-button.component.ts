@@ -26,8 +26,10 @@ import { EntitiesTableComponent } from '@home/components/entity/entities-table.c
 import { EntityType } from '@shared/models/entity-type.models';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
-import { getCurrentAuthUser } from '@core/auth/auth.selectors';
+import { getCurrentAuthUser, selectUserDetails } from '@core/auth/auth.selectors';
 import { Authority } from '@shared/models/authority.enum';
+import { User, UserRole } from '@shared/models/user.model';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'tb-send-notification-button',
@@ -36,10 +38,16 @@ import { Authority } from '@shared/models/authority.enum';
 export class SendNotificationButtonComponent {
 
   authUser = getCurrentAuthUser(this.store);
+  private userDetails: User | null = null;
 
   constructor(private dialog: MatDialog,
               private store: Store<AppState>,
               private activeComponentService: ActiveComponentService) {
+    this.store.select(selectUserDetails).pipe(take(1)).subscribe(
+      (user: User) => {
+        this.userDetails = user;
+      }
+    );
   }
 
   sendNotification($event: Event) {
@@ -67,7 +75,19 @@ export class SendNotificationButtonComponent {
   }
 
   public show(): boolean {
-    return this.authUser.authority !== Authority.CUSTOMER_USER;
+    // Show for SYS_ADMIN
+    if (this.authUser.authority === Authority.SYS_ADMIN) {
+      return true;
+    }
+    
+    // Show for TENANT_ADMIN with CONTROLYTICS_ADMIN role
+    if (this.authUser.authority === Authority.TENANT_ADMIN && this.userDetails) {
+      const role = this.userDetails.additionalInfo?.role;
+      return role === UserRole.CONTROLYTICS_ADMIN;
+    }
+    
+    // Hide for all other cases (including Granules Admin, Maintenance, Customer Users)
+    return false;
   }
 
 }

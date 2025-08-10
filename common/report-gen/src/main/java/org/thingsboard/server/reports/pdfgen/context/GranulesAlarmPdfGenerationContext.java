@@ -75,12 +75,25 @@ public class GranulesAlarmPdfGenerationContext extends GranulesBasePdfGeneration
                     alarmInfo.setAlarmCreatedTime(getFormattedTimeInIst(alarm.getCreatedTime()));
                     alarmInfo.setAlarmSeverity(alarm.getSeverity().name());
                     alarmInfo.setAlarmClearTime(getFormattedTimeInIst(alarm.getClearTs()));
-                    alarmInfo.setAlarmCreatedValue(alarm.getDetails().has("createdValue") ?
-                            Optional.ofNullable(extractDecimal(alarm.getDetails().get("createdValue").toString()))
-                                    .map(String::valueOf).orElse("") : "");
-                    alarmInfo.setAlarmClearedValue(alarm.getDetails().has("clearedValue") ?
-                            Optional.ofNullable(extractDecimal(alarm.getDetails().get("clearedValue").toString()))
-                                    .map(String::valueOf).orElse("") : "");
+                    // Get decimal settings from context
+                    Integer tempDecimals = (Integer) context.getVariable("temperatureDecimals");
+                    Integer humidDecimals = (Integer) context.getVariable("humidityDecimals");
+                    
+                    // Determine which decimal setting to use based on alarm type
+                    Integer decimals = null;
+                    if (alarm.getType().equals(HIGH_TEMPERATURE_ALARM) || alarm.getType().equals(LOW_TEMPERATURE_ALARM)) {
+                        decimals = tempDecimals;
+                    } else if (alarm.getType().equals(HIGH_HUMIDITY_ALARM) || alarm.getType().equals(LOW_HUMIDITY_ALARM)) {
+                        decimals = humidDecimals;
+                    }
+                    
+                    Double createdValue = alarm.getDetails().has("createdValue") ?
+                            extractDecimal(alarm.getDetails().get("createdValue").toString()) : null;
+                    Double clearedValue = alarm.getDetails().has("clearedValue") ?
+                            extractDecimal(alarm.getDetails().get("clearedValue").toString()) : null;
+                    
+                    alarmInfo.setAlarmCreatedValue(formatAlarmValue(createdValue, decimals, alarm.getType()));
+                    alarmInfo.setAlarmClearedValue(formatAlarmValue(clearedValue, decimals, alarm.getType()));
                     return alarmInfo;
                 }).sorted(Comparator.comparing(PdfContextAlarmInfo::getAlarmCreatedTimeEpoch)
                         .reversed())
@@ -100,6 +113,34 @@ public class GranulesAlarmPdfGenerationContext extends GranulesBasePdfGeneration
         }
 
         return null;
+    }
+    
+    private String formatAlarmValue(Double value, Integer decimals, String alarmType) {
+        if (value == null) {
+            return "";
+        }
+        
+        // If decimals is not set, mirror the input data
+        if (decimals == null) {
+            String stringValue = String.valueOf(value);
+            
+            // Handle scientific notation
+            if (stringValue.contains("E")) {
+                return stringValue;
+            }
+            
+            // For whole numbers, don't add .0
+            if (value == Math.floor(value) && !Double.isInfinite(value)) {
+                return String.valueOf(value.intValue());
+            }
+            
+            // For decimal numbers, preserve their precision
+            return stringValue;
+        }
+        
+        // If decimals is set, format with specified precision
+        String format = "%%.%df".formatted(decimals);
+        return String.format(format, value);
     }
 
     private static String format(final Context context, final String key) {
