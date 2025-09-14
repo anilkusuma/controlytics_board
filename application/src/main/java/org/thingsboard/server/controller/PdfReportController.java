@@ -28,7 +28,10 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +46,7 @@ import org.thingsboard.server.common.data.alarm.AlarmQueryV2;
 import org.thingsboard.server.common.data.alarm.AlarmSearchStatus;
 import org.thingsboard.server.common.data.alarm.AlarmSeverity;
 import org.thingsboard.server.common.data.audit.ActionType;
+import org.thingsboard.server.common.data.exception.ThingsboardErrorCode;
 import org.thingsboard.server.common.data.exception.ThingsboardException;
 import org.thingsboard.server.common.data.id.DeviceId;
 import org.thingsboard.server.common.data.id.EntityId;
@@ -59,7 +63,9 @@ import org.thingsboard.server.queue.util.TbCoreComponent;
 import org.thingsboard.server.reports.pdfgen.context.GranulesAlarmPdfGenerationContext;
 import org.thingsboard.server.reports.pdfgen.context.GranulesTelemetryPdfGenerationContext;
 import org.thingsboard.server.reports.pdfgen.context.TelemetryPdfGenerationContext;
+import org.thingsboard.server.reports.pdfgen.context.TrendPdfGenerationContext;
 import org.thingsboard.server.reports.pdfgen.factory.PdfGeneratorFactory;
+import org.thingsboard.server.reports.pdfgen.generator.TrendPdfReportGenerator;
 import org.thingsboard.server.reports.pdfgen.models.PdfType;
 import org.thingsboard.server.service.security.AccessValidator;
 import org.thingsboard.server.service.security.model.SecurityUser;
@@ -458,5 +464,65 @@ public class PdfReportController extends BaseController {
         final ZoneId zoneId = ZoneId.of("Asia/Kolkata");
         final LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(time), zoneId);
         return dateTime.format(formatter);
+    }
+
+    @Data
+    public static class TrendReportRequest {
+        private String entityId;
+        private String entityType;
+        private String entityName;
+        private String chartTitle;
+        private String chartImageBase64;
+        private String startDate;
+        private String startTime;
+        private String endDate;
+        private String endTime;
+    }
+
+    @ApiOperation(value = "Generate Trend Report PDF",
+            notes = "Generates a PDF report with a trend chart screenshot.")
+    @PreAuthorize("hasAnyAuthority('TENANT_ADMIN', 'CUSTOMER_USER')")
+    @RequestMapping(value = "/trend", method = RequestMethod.POST)
+    @ResponseBody
+    public ResponseEntity<byte[]> generateTrendReport(
+            @RequestBody TrendReportRequest request) throws ThingsboardException {
+        
+        final SecurityUser currentUser = getCurrentUser();
+        
+        try {
+            // Create context for PDF generation
+            TrendPdfGenerationContext context = TrendPdfGenerationContext.builder()
+                .entityId(request.getEntityId())
+                .entityType(request.getEntityType())
+                .entityName(request.getEntityName())
+                .chartTitle(request.getChartTitle())
+                .chartImageBase64(request.getChartImageBase64())
+                .startDate(request.getStartDate())
+                .startTime(request.getStartTime())
+                .endDate(request.getEndDate())
+                .endTime(request.getEndTime())
+                .username(currentUser.getName())
+                .build();
+
+            // Generate PDF
+            byte[] pdfBytes = ((TrendPdfReportGenerator) pdfGeneratorFactory.getGenerator(PdfType.TREND_REPORT))
+                .generatePdf(context);
+
+            // Set response headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("trend_report_" + System.currentTimeMillis() + ".pdf")
+                .build());
+
+            return ResponseEntity.ok()
+                .headers(headers)
+                .body(pdfBytes);
+
+        } catch (Exception e) {
+            log.error("Error generating trend report", e);
+            throw new ThingsboardException("Failed to generate trend report", e, 
+                ThingsboardErrorCode.GENERAL);
+        }
     }
 }

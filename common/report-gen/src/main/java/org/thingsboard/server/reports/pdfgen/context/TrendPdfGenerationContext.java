@@ -19,12 +19,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.thingsboard.server.common.data.id.EntityId;
-import org.thingsboard.server.common.data.id.TenantId;
-import org.thingsboard.server.common.data.id.UserId;
 import org.thymeleaf.context.Context;
-
-import java.util.Date;
 
 @Data
 @Slf4j
@@ -32,39 +27,31 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 public class TrendPdfGenerationContext extends PdfGenerationContext {
     
-    private final TenantId tenantId;
-    private final EntityId entityId;
+    private final String entityId;
+    private final String entityType;
     private final String entityName;
-    private final UserId userId;
-    private final String userName;
-    private final long startTs;
-    private final long endTs;
+    private final String chartTitle;
     private final String chartImageBase64;
-    private final String chartType; // "temperature" or "humidity" or "both"
+    private final String startDate;
+    private final String startTime;
+    private final String endDate;
+    private final String endTime;
+    private final String username;
     
     @Override
     public Context asContext() {
         final Context context = new Context();
-        context.setVariable("tenantId", tenantId.getId().toString());
-        context.setVariable("entityId", entityId.getId().toString());
+        context.setVariable("entityId", entityId);
+        context.setVariable("entityType", entityType);
         context.setVariable("entityName", entityName);
-        context.setVariable("userId", userId.getId().toString());
-        context.setVariable("username", userName);
-        context.setVariable("startDate", getFormattedDateInIst(startTs));
-        context.setVariable("startTime", getFormattedTimeInIst(startTs));
-        context.setVariable("endDate", getFormattedDateInIst(endTs));
-        context.setVariable("endTime", getFormattedTimeInIst(endTs));
-        context.setVariable("printTime", getFormattedTimeInIst(new Date().getTime()));
+        context.setVariable("chartTitle", chartTitle != null ? chartTitle : "Temperature and Humidity Trend");
         context.setVariable("chartImageBase64", chartImageBase64);
-        context.setVariable("chartType", chartType);
-        
-        String chartTitle = "Temperature and Humidity Trend";
-        if ("temperature".equals(chartType)) {
-            chartTitle = "Temperature Trend";
-        } else if ("humidity".equals(chartType)) {
-            chartTitle = "Humidity Trend";
-        }
-        context.setVariable("chartTitle", chartTitle);
+        context.setVariable("startDate", startDate);
+        context.setVariable("startTime", startTime);
+        context.setVariable("endDate", endDate);
+        context.setVariable("endTime", endTime);
+        context.setVariable("username", username);
+        context.setVariable("printTime", getFormattedTimeInIst(System.currentTimeMillis()));
         
         return context;
     }

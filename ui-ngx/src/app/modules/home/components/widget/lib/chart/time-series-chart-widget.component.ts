@@ -91,7 +91,13 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
   }
 
   ngOnInit(): void {
+    // Register the widget component for custom actions
+    if (!this.ctx.$scope) {
+      this.ctx.$scope = {} as any;
+    }
     this.ctx.$scope.timeSeriesChartWidget = this;
+    // Also add directly to context for easier access
+    (this.ctx as any).downloadTrendReport = this.downloadTrendReport.bind(this);
     this.settings = {...timeSeriesChartWidgetDefaultSettings, ...this.ctx.settings};
 
     this.backgroundStyle$ = backgroundStyle(this.settings.background, this.imagePipe, this.sanitizer);
@@ -170,5 +176,90 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
 
   public toggleLegendKey(legendKey: LegendKey) {
     this.timeSeriesChart.toggleKey(legendKey.dataKey);
+  }
+
+  public downloadTrendReport(title?: string) {
+
+    if (!this.timeSeriesChart) {
+      this.ctx.showErrorToast('Chart not initialized');
+      return;
+    }
+
+    const chartInstance = this.timeSeriesChart.getChartInstance();
+    if (!chartInstance) {
+      this.ctx.showErrorToast('Unable to access chart instance');
+      return;
+    }
+
+    // Capture chart as base64 image with higher resolution
+    const chartImageBase64 = chartInstance.getDataURL({
+      type: 'png',
+      pixelRatio: 3, // Increased for better quality
+      backgroundColor: '#fff'
+    });
+
+    // Remove data URL prefix
+    const base64Data = chartImageBase64.split(',')[1];
+
+    // Format dates and times
+    const startDate = new Date(this.ctx.defaultSubscription.timeWindow.minTime);
+    const endDate = new Date(this.ctx.defaultSubscription.timeWindow.maxTime);
+
+    const formatDate = (date: Date) => {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    };
+
+    const formatTime = (date: Date) => {
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+
+    // Get the actual entity name from datasources or subscription
+    let entityName = 'Device';
+    if (this.ctx.datasources && this.ctx.datasources.length > 0) {
+      // Try to get from datasource
+      entityName = this.ctx.datasources[0].entityName || this.ctx.datasources[0].name || entityName;
+    } else if (this.ctx.defaultSubscription?.targetEntityName) {
+      // Fallback to subscription target entity name
+      entityName = this.ctx.defaultSubscription.targetEntityName;
+    }
+
+    // Prepare report data
+    const reportData = {
+      entityId: this.ctx.defaultSubscription?.targetEntityId?.id || '',
+      entityType: this.ctx.defaultSubscription?.targetEntityId?.entityType || '',
+      entityName: entityName,
+      chartTitle: title || 'Temperature and Humidity Trend',
+      chartImageBase64: base64Data,
+      startDate: formatDate(startDate),
+      startTime: formatTime(startDate),
+      endDate: formatDate(endDate),
+      endTime: formatTime(endDate)
+    };
+
+    // Call backend API to generate PDF
+    this.ctx.http.post('/api/reports/trend', reportData, { responseType: 'blob' }).subscribe(
+      (response: Blob) => {
+        // Download the PDF
+        const url = window.URL.createObjectURL(response);
+        const link = document.createElement('a');
+        link.href = url;
+        const timestamp = new Date().getTime();
+        link.download = `trend_report_${timestamp}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        this.ctx.showSuccessToast('Trend report downloaded successfully');
+      },
+      error => {
+        console.error('Error generating trend report:', error);
+        this.ctx.showErrorToast('Failed to generate trend report');
+      }
+    );
   }
 }

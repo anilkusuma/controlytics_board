@@ -20,7 +20,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.thingsboard.server.reports.pdfgen.AbstractPdfGenerator;
+import org.thingsboard.server.reports.pdfgen.context.TrendPdfGenerationContext;
 import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+
+import java.util.UUID;
 
 import static org.thingsboard.server.reports.pdfgen.config.PdfGeneratorSpringConfig.PDF_GENERATOR_TEMPLATE_BEAN;
 
@@ -31,5 +35,11 @@ public class TrendPdfReportGenerator extends AbstractPdfGenerator {
     public TrendPdfReportGenerator(@Value("${report_gen.storage_path}") String reportLocalStoragePath,
                                   @Qualifier(PDF_GENERATOR_TEMPLATE_BEAN) TemplateEngine templateEngine) {
         super("pdf_templates/trend-report", templateEngine, reportLocalStoragePath + "/trend-reports/");
+    }
+    
+    public byte[] generatePdf(TrendPdfGenerationContext context) {
+        String requestId = UUID.randomUUID().toString();
+        Context thymeleafContext = context.asContext();
+        return super.generatePdf(requestId, thymeleafContext);
     }
 }

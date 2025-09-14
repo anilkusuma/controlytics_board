@@ -21,3 +21,4 @@
 - Based on ThingsBoard 3.7.0
 - Use Lombok annotations to reduce boilerplate (@Getter, @Setter, @Builder)
 - Follow REST API conventions for new endpoints
+- Don't run the mvn commands directly. I will handle mvn commands, like compiling, testing and cleaning myself. Never run mvn commands directly without permissions.

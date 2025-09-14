@@ -854,4 +854,8 @@ export class TbTimeSeriesChart {
       this.timeSeriesChart.setOption(this.timeSeriesChartOptions);
     }
   }
+
+  public getChartInstance(): ECharts {
+    return this.timeSeriesChart;
+  }
 }

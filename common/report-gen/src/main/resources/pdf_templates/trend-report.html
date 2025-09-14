@@ -91,19 +91,27 @@
             width: 100%;
             text-align: center;
             margin: 20px 0;
+            padding: 20px 0;
         }
 
         .chart-container img {
-            max-width: 100%;
+            width: 100%;
             height: auto;
+            display: block;
+            margin: 0 auto;
         }
 
-        .footer_component {
-            position: running(footer_component);
+        #footer_component {
             width: 100%;
-            font-size: 10pt;
             text-align: center;
-            padding: 10px 0;
+            position: running(footer_component);
+            font-size: 12px;
+            border-top: 1px solid #000;
+        }
+
+        #footer_component .footer-content .center:after {
+            text-align: center;
+            content: "Page " counter(page) " of " counter(pages);
         }
 
         .page-break {
@@ -121,12 +129,22 @@
 </head>
 <body>
 <div class="header">
-    <div class="sub-header">
-        <div class="logo">
-            <img src="images/logo.png" alt="Granules Logo"/>
-        </div>
-        <div class="title" th:text="${chartTitle}">Temperature and Humidity Trend</div>
-    </div>
+    <table style="width: 100%;" class="sub-header">
+        <tr>
+            <td class="first-page-header-logo" style="width: 20%; text-align: left;">
+                <div class="logo">
+                    <img class="granules_logo" src="" alt="Logo"/>
+                </div>
+            </td>
+            <td style="width: 60%; text-align: center;">
+                <h2 class="location">Unit Name : Gagillapur</h2>
+                <h1 class="title" th:text="${chartTitle}"></h1>
+            </td>
+            <td style="width: 20%;">
+                <!-- Empty cell for balance -->
+            </td>
+        </tr>
+    </table>
 </div>
 
 <div class="report-details-header">
@@ -151,32 +169,34 @@
             <td>
                 <label>End Time</label><span class="colon">:</span><span th:text="${endTime}"></span>
             </td>
-            <td>
-                <label>Printed Date &amp; Time</label><span class="colon">:</span><span th:text="${printTime}"></span>
-            </td>
         </tr>
     </table>
 </div>
 
 <div class="chart-container">
-    <img th:src="${'data:image/png;base64,' + chartImageBase64}" alt="Trend Chart"/>
+    <img th:src="${chartImageBase64}" alt="Trend Chart"/>
 </div>
 
-<div>
-    <div style="text-align: left; vertical-align: middle; margin-top: 30px;">
-        <span>Printed By: <span th:text="${username}"></span></span>
+<div class="printed-details table-container" style="margin-top: 50px;">
+
+    <div style="text-align: left; vertical-align: middle; margin-bottom: 10px;">
+        <span>Printed By: <span th:text="${username}"></span></span><br></br>
     </div>
-</div>
 
+    <div style="text-align: left; vertical-align: middle; margin-bottom: 10px;">
+        <span>Printed Date &amp; Time : <span th:text="${printTime}"></span></span><br></br>
+    </div>
+
+</div>
 <div th:fragment="footer">
-    <div id="footer_component" class="footer_component">
-        <div class="footer-content">
-            <div class="center" style="text-align: center; vertical-align: middle">
-                <span>Page <span class="pagenumber"></span> of <span class="pagecount"></span></span>
+    <div id="footer_component" class="table-container footer_component">
+        <div class="footer-content table-row ">
+            <div class="center table-cell" style="text-align: center; vertical-align: middle">
             </div>
         </div>
     </div>
 </div>
+<div th:replace="~{::footer}"></div>
 
 </body>
 </html>
