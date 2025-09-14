@@ -794,6 +794,52 @@ export class TbFlot {
     }
   }
 
+  public getChartAsBase64(): string {
+    if (!this.plot || !this.$element) {
+      throw new Error('Chart not initialized');
+    }
+
+    // Find all canvas elements within the Flot container
+    const canvases = this.$element.find('canvas').toArray() as HTMLCanvasElement[];
+
+    if (canvases.length === 0) {
+      throw new Error('No canvas elements found in chart');
+    }
+
+    // If there's only one canvas, return its data URL directly
+    if (canvases.length === 1) {
+      return canvases[0].toDataURL('image/png');
+    }
+
+    // Multiple canvases - need to merge them
+    // Flot typically uses multiple canvases for layering (base, overlay, etc.)
+    const firstCanvas = canvases[0];
+    const width = firstCanvas.width;
+    const height = firstCanvas.height;
+
+    // Create a temporary canvas to merge all layers
+    const mergedCanvas = document.createElement('canvas');
+    mergedCanvas.width = width;
+    mergedCanvas.height = height;
+    const ctx = mergedCanvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('Failed to create canvas context');
+    }
+
+    // Set white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw each canvas layer in order
+    canvases.forEach(canvas => {
+      ctx.drawImage(canvas, 0, 0);
+    });
+
+    // Return the merged canvas as base64
+    return mergedCanvas.toDataURL('image/png');
+  }
+
   public destroy() {
     this.cleanup();
     if (this.tooltip) {

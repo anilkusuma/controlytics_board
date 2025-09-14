@@ -43,6 +43,10 @@ import {
   TimeSeriesChartWidgetSettings
 } from '@home/components/widget/lib/chart/time-series-chart-widget.models';
 import { mergeDeep } from '@core/utils';
+import {
+  ReLoginDialogComponentData,
+  ReLoginDialogComponentResponse
+} from '@home/dialogs/re-login/relogin-dialog.component';
 
 @Component({
   selector: 'tb-time-series-chart-widget',
@@ -191,6 +195,25 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
       return;
     }
 
+    // Show re-authentication dialog
+    this.ctx.dialogs.relogin({
+      remarksRequired: true,
+      intervalRequired: false,
+      timeRangeRequired: false,
+      userNameInputRequired: false
+    } as ReLoginDialogComponentData).subscribe(
+      (result: ReLoginDialogComponentResponse) => {
+        if (result && result.reloginStatus) {
+          // Proceed with PDF generation after successful re-authentication
+          this.generateAndDownloadPdf(title, chartInstance, result.remarks);
+        } else if (result && !result.reloginStatus) {
+          this.ctx.showErrorToast('Authentication failed. Please try again.');
+        }
+      }
+    );
+  }
+
+  private generateAndDownloadPdf(title: string, chartInstance: any, remarks: string) {
     // Capture chart as base64 image with higher resolution
     const chartImageBase64 = chartInstance.getDataURL({
       type: 'png',
@@ -228,17 +251,21 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
       entityName = this.ctx.defaultSubscription.targetEntityName;
     }
 
+    // Prepare chart title
+    const chartTitle = title || 'Temperature and Humidity Trend';
+
     // Prepare report data
     const reportData = {
       entityId: this.ctx.defaultSubscription?.targetEntityId?.id || '',
       entityType: this.ctx.defaultSubscription?.targetEntityId?.entityType || '',
       entityName: entityName,
-      chartTitle: title || 'Temperature and Humidity Trend',
+      chartTitle: chartTitle,
       chartImageBase64: base64Data,
       startDate: formatDate(startDate),
       startTime: formatTime(startDate),
       endDate: formatDate(endDate),
-      endTime: formatTime(endDate)
+      endTime: formatTime(endDate),
+      remarks: remarks // Include remarks in the report data
     };
 
     // Call backend API to generate PDF
@@ -248,8 +275,10 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
         const url = window.URL.createObjectURL(response);
         const link = document.createElement('a');
         link.href = url;
+        // Use chart title with underscores for filename (all lowercase)
+        const safeFilename = chartTitle.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '');
         const timestamp = new Date().getTime();
-        link.download = `trend_report_${timestamp}.pdf`;
+        link.download = `${safeFilename}_${timestamp}.pdf`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

@@ -26,6 +26,10 @@ import {
   widgetType
 } from '@shared/models/widget.models';
 import { isDefinedAndNotNull } from '@core/utils';
+import {
+  ReLoginDialogComponentData,
+  ReLoginDialogComponentResponse
+} from '@home/dialogs/re-login/relogin-dialog.component';
 
 @Component({
   selector: 'tb-flot-widget',
@@ -57,6 +61,8 @@ export class FlotWidgetComponent implements OnInit {
 
   ngOnInit(): void {
     this.ctx.$scope.flotWidget = this;
+    // Register the downloadTrendReport method on the context
+    (this.ctx as any).downloadTrendReport = this.downloadTrendReport.bind(this);
     this.settings = this.ctx.settings;
     this.chartType = this.chartType || 'line';
     this.configureLegend();
@@ -148,6 +154,110 @@ export class FlotWidgetComponent implements OnInit {
 
   public onDestroy() {
     this.flot.destroy();
+  }
+
+  public downloadTrendReport(title?: string) {
+    if (!this.flot) {
+      this.ctx.showErrorToast('Chart not initialized');
+      return;
+    }
+
+    // Show re-authentication dialog
+    this.ctx.dialogs.relogin({
+      remarksRequired: true,
+      intervalRequired: false,
+      timeRangeRequired: false,
+      userNameInputRequired: false
+    } as ReLoginDialogComponentData).subscribe(
+      (result: ReLoginDialogComponentResponse) => {
+        if (result && result.reloginStatus) {
+          // Proceed with PDF generation after successful re-authentication
+          this.generateAndDownloadPdf(title, result.remarks);
+        } else if (result && !result.reloginStatus) {
+          this.ctx.showErrorToast('Authentication failed. Please try again.');
+        }
+      }
+    );
+  }
+
+  private generateAndDownloadPdf(title: string, remarks: string) {
+    try {
+      // Get the chart as base64 image
+      const chartImageBase64 = this.flot.getChartAsBase64();
+
+      // Remove data URL prefix
+      const base64Data = chartImageBase64.split(',')[1];
+
+      // Format dates and times
+      const startDate = new Date(this.ctx.defaultSubscription.timeWindow.minTime);
+      const endDate = new Date(this.ctx.defaultSubscription.timeWindow.maxTime);
+
+      const formatDate = (date: Date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
+      const formatTime = (date: Date) => {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+      };
+
+      // Get the actual entity name from datasources or subscription
+      let entityName = 'Device';
+      if (this.ctx.datasources && this.ctx.datasources.length > 0) {
+        // Try to get from datasource
+        entityName = this.ctx.datasources[0].entityName || this.ctx.datasources[0].name || entityName;
+      } else if (this.ctx.defaultSubscription?.targetEntityName) {
+        // Fallback to subscription target entity name
+        entityName = this.ctx.defaultSubscription.targetEntityName;
+      }
+
+      // Prepare chart title
+      const chartTitle = title || 'Temperature and Humidity Trend';
+
+      // Prepare report data
+      const reportData = {
+        entityId: this.ctx.defaultSubscription?.targetEntityId?.id || '',
+        entityType: this.ctx.defaultSubscription?.targetEntityId?.entityType || '',
+        entityName: entityName,
+        chartTitle: chartTitle,
+        chartImageBase64: base64Data,
+        startDate: formatDate(startDate),
+        startTime: formatTime(startDate),
+        endDate: formatDate(endDate),
+        endTime: formatTime(endDate),
+        remarks: remarks // Include remarks in the report data
+      };
+
+      // Call backend API to generate PDF
+      this.ctx.http.post('/api/reports/trend', reportData, { responseType: 'blob' }).subscribe(
+        (response: Blob) => {
+          // Download the PDF
+          const url = window.URL.createObjectURL(response);
+          const link = document.createElement('a');
+          link.href = url;
+          // Use chart title with underscores for filename (all lowercase)
+          const safeFilename = chartTitle.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_-]/g, '');
+          const timestamp = new Date().getTime();
+          link.download = `${safeFilename}_${timestamp}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          this.ctx.showSuccessToast('Trend report downloaded successfully');
+        },
+        error => {
+          console.error('Error generating trend report:', error);
+          this.ctx.showErrorToast('Failed to generate trend report');
+        }
+      );
+    } catch (error) {
+      console.error('Error capturing chart image:', error);
+      this.ctx.showErrorToast('Failed to capture chart image');
+    }
   }
 
 }
