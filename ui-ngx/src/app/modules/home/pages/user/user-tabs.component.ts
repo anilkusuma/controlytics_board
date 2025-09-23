@@ -18,7 +18,7 @@ import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { EntityTabsComponent } from '../../components/entity/entity-tabs.component';
-import { User } from '@app/shared/models/user.model';
+import { User, UserRole } from '@app/shared/models/user.model';
 
 @Component({
   selector: 'tb-user-tabs',
@@ -35,4 +35,7 @@ export class UserTabsComponent extends EntityTabsComponent<User> {
     super.ngOnInit();
   }
 
+  get shouldHideTabs(): boolean {
+    return this.userRole === UserRole.ADMIN;
+  }
 }

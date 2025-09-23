@@ -23,8 +23,8 @@ import { EntityTableConfig } from '@home/models/entity/entities-table-config.mod
 import { MatTab } from '@angular/material/tabs';
 import { BehaviorSubject } from 'rxjs';
 import { Authority } from '@app/shared/models/authority.enum';
-import { getCurrentAuthUser } from '@core/auth/auth.selectors';
-import { AuthUser } from '@shared/models/user.model';
+import {getCurrentAuthState, getCurrentAuthUser} from '@core/auth/auth.selectors';
+import {AuthUser, UserRole} from '@shared/models/user.model';
 import { EntityType } from '@shared/models/entity-type.models';
 import { AuditLogMode } from '@shared/models/audit-log.models';
 import { DebugEventType, EventType } from '@shared/models/event.models';
@@ -55,6 +55,7 @@ export abstract class EntityTabsComponent<T extends BaseData<HasId>,
   debugEventTypes = DebugEventType;
 
   authUser: AuthUser;
+  userRole: UserRole;
 
   nullUid = NULL_UUID;
 
@@ -103,6 +104,7 @@ export abstract class EntityTabsComponent<T extends BaseData<HasId>,
   protected constructor(protected store: Store<AppState>) {
     super(store);
     this.authUser = getCurrentAuthUser(store);
+    this.userRole = getCurrentAuthState(store)?.userDetails?.additionalInfo?.role;
   }
 
   ngOnInit() {

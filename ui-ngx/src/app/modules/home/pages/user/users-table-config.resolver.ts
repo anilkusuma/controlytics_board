@@ -52,6 +52,8 @@ import { TenantId } from '@app/shared/models/id/tenant-id';
 import { UserTabsComponent } from '@home/pages/user/user-tabs.component';
 import { isDefinedAndNotNull } from '@core/utils';
 import {NotificationRule} from "@shared/models/notification.models";
+import { DialogService } from '@core/services/dialog.service';
+import { ReLoginDialogComponentData } from '@home/dialogs/re-login/relogin-dialog.component';
 
 export interface UsersTableRouteData {
   authority: Authority;
@@ -75,7 +77,8 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
               private translate: TranslateService,
               private datePipe: DatePipe,
               private router: Router,
-              private dialog: MatDialog) {
+              private dialog: MatDialog,
+              private dialogService: DialogService) {
 
     this.config.entityType = EntityType.USER;
     this.config.entityComponent = UserComponent;
@@ -101,7 +104,7 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
 
     this.config.loadEntity = id => this.userService.getUser(id.id);
     this.config.saveEntity = user => this.saveUser(user);
-    this.config.deleteEntity = id => this.userService.deleteUser(id.id);
+    this.config.deleteEntity = id => this.deleteUser(id);
     this.config.onEntityAction = action => this.onUserAction(action, this.config);
     this.config.addEntity = () => this.addUser();
   }
@@ -176,6 +179,44 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
   }
 
   saveUser(user: User): Observable<User> {
+    // Check if current user is Admin (not Controlytics Admin)
+    if (this.authUser.additionalInfo?.role === UserRole.ADMIN) {
+      // Return an Observable that handles re-authentication
+      return new Observable(observer => {
+        this.dialogService.relogin({
+          remarksRequired: false,
+          intervalRequired: false,
+          timeRangeRequired: false,
+          userNameInputRequired: false
+        } as ReLoginDialogComponentData).subscribe(
+          (result) => {
+            if (result && result.reloginStatus) {
+              // Proceed with user save after successful re-authentication
+              this.performSaveUser(user).subscribe(
+                response => {
+                  observer.next(response);
+                  observer.complete();
+                },
+                error => {
+                  observer.error(error);
+                }
+              );
+            } else {
+              observer.error(new Error('Re-authentication failed'));
+            }
+          },
+          error => {
+            observer.error(error);
+          }
+        );
+      });
+    } else {
+      // Skip re-authentication for Controlytics Admin or other roles
+      return this.performSaveUser(user);
+    }
+  }
+
+  private performSaveUser(user: User): Observable<User> {
     user.tenantId = new TenantId(this.tenantId);
     user.customerId = new CustomerId(this.customerId);
     if (user.additionalInfo.role === UserRole.ADMIN
@@ -199,6 +240,44 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
         authority: this.authority
       }
     }).afterClosed();
+  }
+
+  deleteUser(id: any): Observable<any> {
+    // Check if current user is Admin (not Controlytics Admin)
+    if (this.authUser.additionalInfo?.role === UserRole.ADMIN) {
+      // Return an Observable that handles re-authentication
+      return new Observable(observer => {
+        this.dialogService.relogin({
+          remarksRequired: false,
+          intervalRequired: false,
+          timeRangeRequired: false,
+          userNameInputRequired: false
+        } as ReLoginDialogComponentData).subscribe(
+          (result) => {
+            if (result && result.reloginStatus) {
+              // Proceed with user deletion after successful re-authentication
+              this.userService.deleteUser(id.id).subscribe(
+                response => {
+                  observer.next(response);
+                  observer.complete();
+                },
+                error => {
+                  observer.error(error);
+                }
+              );
+            } else {
+              observer.error(new Error('Re-authentication failed'));
+            }
+          },
+          error => {
+            observer.error(error);
+          }
+        );
+      });
+    } else {
+      // Skip re-authentication for Controlytics Admin or other roles
+      return this.userService.deleteUser(id.id);
+    }
   }
 
   private openUser($event: Event, user: User, config: EntityTableConfig<User>) {
@@ -275,6 +354,29 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
     if ($event) {
       $event.stopPropagation();
     }
+    // Check if current user is Admin (not Controlytics Admin)
+    if (this.authUser.additionalInfo?.role === UserRole.ADMIN) {
+      // Show re-authentication dialog for Admin users
+      this.dialogService.relogin({
+        remarksRequired: false,
+        intervalRequired: false,
+        timeRangeRequired: false,
+        userNameInputRequired: false
+      } as ReLoginDialogComponentData).subscribe(
+        (result) => {
+          if (result && result.reloginStatus) {
+            // Proceed with displaying temporary password after successful re-authentication
+            this.performDisplayTemporaryPassword(user);
+          }
+        }
+      );
+    } else {
+      // Skip re-authentication for Controlytics Admin or other roles
+      this.performDisplayTemporaryPassword(user);
+    }
+  }
+
+  private performDisplayTemporaryPassword(user: User) {
     this.userService.getTemporaryPassword(user.id.id).subscribe(
       (temporaryPassword) => {
         this.dialog.open<ActivationLinkDialogComponent, ActivationLinkDialogData,
@@ -307,6 +409,29 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
     if ($event) {
       $event.stopPropagation();
     }
+    // Check if current user is Admin (not Controlytics Admin)
+    if (this.authUser.additionalInfo?.role === UserRole.ADMIN) {
+      // Show re-authentication dialog for Admin users
+      this.dialogService.relogin({
+        remarksRequired: false,
+        intervalRequired: false,
+        timeRangeRequired: false,
+        userNameInputRequired: false
+      } as ReLoginDialogComponentData).subscribe(
+        (result) => {
+          if (result && result.reloginStatus) {
+            // Proceed with enabling/disabling user after successful re-authentication
+            this.performSetUserCredentialsEnabled(user, userCredentialsEnabled);
+          }
+        }
+      );
+    } else {
+      // Skip re-authentication for Controlytics Admin or other roles
+      this.performSetUserCredentialsEnabled(user, userCredentialsEnabled);
+    }
+  }
+
+  private performSetUserCredentialsEnabled(user: User, userCredentialsEnabled: boolean) {
     this.userService.setUserCredentialsEnabled(user.id.id, userCredentialsEnabled).subscribe(() => {
       if (!user.additionalInfo) {
         user.additionalInfo = {};

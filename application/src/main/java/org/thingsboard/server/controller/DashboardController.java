@@ -142,7 +142,26 @@ public class DashboardController extends BaseController {
             @PathVariable(DASHBOARD_ID) String strDashboardId) throws ThingsboardException {
         checkParameter(DASHBOARD_ID, strDashboardId);
         DashboardId dashboardId = new DashboardId(toUUID(strDashboardId));
-        return checkDashboardInfoId(dashboardId, Operation.READ);
+
+        try {
+            return checkDashboardInfoId(dashboardId, Operation.READ);
+        } catch (ThingsboardException e) {
+            // Handle cross-tenant dashboard access for Admin role users
+            SecurityUser currentUser = getCurrentUser();
+            if (currentUser != null &&
+                currentUser.getAdditionalInfo() != null &&
+                "ADMIN".equals(currentUser.getAdditionalInfo().get("role").asText())) {
+
+                // For Admin users, try to find the dashboard from any tenant
+                DashboardInfo dashboardInfo = dashboardService.findDashboardInfoById(null, dashboardId);
+                if (dashboardInfo != null) {
+                    return dashboardInfo;
+                }
+            }
+
+            // Re-throw the original exception if not Admin or dashboard not found
+            throw e;
+        }
     }
 
     @ApiOperation(value = "Get Dashboard (getDashboardById)",

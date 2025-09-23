@@ -32,6 +32,10 @@ import {
 import { TenantId } from '@app/shared/models/id/tenant-id';
 import { DialogComponent } from '@shared/components/dialog.component';
 import { Router } from '@angular/router';
+import { DialogService } from '@core/services/dialog.service';
+import { ReLoginDialogComponentData } from '@home/dialogs/re-login/relogin-dialog.component';
+import { selectAuth } from '@core/auth/auth.selectors';
+import { select } from '@ngrx/store';
 
 export interface AddUserDialogData {
   tenantId: string;
@@ -63,7 +67,8 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
               @Inject(MAT_DIALOG_DATA) public data: AddUserDialogData,
               public dialogRef: MatDialogRef<AddUserDialogComponent, User>,
               private userService: UserService,
-              private dialog: MatDialog) {
+              private dialog: MatDialog,
+              private dialogService: DialogService) {
     super(store, router, dialogRef);
   }
 
@@ -80,45 +85,71 @@ export class AddUserDialogComponent extends DialogComponent<AddUserDialogCompone
 
   add(): void {
     if (this.detailsForm.valid) {
-      this.user = {...this.user, ...this.userComponent.entityForm.value};
-      this.user.tenantId = new TenantId(this.data.tenantId);
-      if (this.user.additionalInfo.role === UserRole.ADMIN
-        || this.user.additionalInfo.role === UserRole.MAINTENANCE) {
-        this.user.authority = Authority.TENANT_ADMIN;
-        this.user.customerId = undefined;
-      } else {
-        this.user.authority = this.data.authority;
-        this.user.customerId = new CustomerId(this.data.customerId);
-      }
-      const sendActivationEmail = this.activationMethod === ActivationMethod.SEND_ACTIVATION_MAIL;
-      this.userService.saveUser(this.user, sendActivationEmail).subscribe(
-        (user) => {
-          if (this.activationMethod === ActivationMethod.DISPLAY_ACTIVATION_LINK) {
-            this.userService.getActivationLink(user.id.id).subscribe(
-              (activationLink) => {
-                this.displayActivationLink(activationLink).subscribe(
-                  () => {
-                    this.dialogRef.close(user);
-                  }
-                );
+      this.store.pipe(select(selectAuth)).subscribe(auth => {
+        const currentUser = auth.userDetails;
+        // Check if current user is Admin (not Controlytics Admin)
+        if (currentUser.additionalInfo?.role === UserRole.ADMIN) {
+          // Show re-authentication dialog for Admin users
+          this.dialogService.relogin({
+            remarksRequired: false,
+            intervalRequired: false,
+            timeRangeRequired: false,
+            userNameInputRequired: false
+          } as ReLoginDialogComponentData).subscribe(
+            (result) => {
+              if (result && result.reloginStatus) {
+                // Proceed with user creation after successful re-authentication
+                this.performUserCreation();
               }
-            );
-          } else if (this.activationMethod === ActivationMethod.DISPLAY_TEMPORARY_PASSWORD) {
-            this.userService.getActivationPassword(user.id.id).subscribe(
-              (activationPassword) => {
-                this.displayActivationPassword(activationPassword).subscribe(
-                  () => {
-                    this.dialogRef.close(user);
-                  }
-                );
-              }
-            );
-          } else {
-            this.dialogRef.close(user);
-          }
+            }
+          );
+        } else {
+          // Skip re-authentication for Controlytics Admin or other roles
+          this.performUserCreation();
         }
-      );
+      });
     }
+  }
+
+  private performUserCreation(): void {
+    this.user = {...this.user, ...this.userComponent.entityForm.value};
+    this.user.tenantId = new TenantId(this.data.tenantId);
+    if (this.user.additionalInfo.role === UserRole.ADMIN
+      || this.user.additionalInfo.role === UserRole.MAINTENANCE) {
+      this.user.authority = Authority.TENANT_ADMIN;
+      this.user.customerId = undefined;
+    } else {
+      this.user.authority = this.data.authority;
+      this.user.customerId = new CustomerId(this.data.customerId);
+    }
+    const sendActivationEmail = this.activationMethod === ActivationMethod.SEND_ACTIVATION_MAIL;
+    this.userService.saveUser(this.user, sendActivationEmail).subscribe(
+      (user) => {
+        if (this.activationMethod === ActivationMethod.DISPLAY_ACTIVATION_LINK) {
+          this.userService.getActivationLink(user.id.id).subscribe(
+            (activationLink) => {
+              this.displayActivationLink(activationLink).subscribe(
+                () => {
+                  this.dialogRef.close(user);
+                }
+              );
+            }
+          );
+        } else if (this.activationMethod === ActivationMethod.DISPLAY_TEMPORARY_PASSWORD) {
+          this.userService.getActivationPassword(user.id.id).subscribe(
+            (activationPassword) => {
+              this.displayActivationPassword(activationPassword).subscribe(
+                () => {
+                  this.dialogRef.close(user);
+                }
+              );
+            }
+          );
+        } else {
+          this.dialogRef.close(user);
+        }
+      }
+    );
   }
 
   displayActivationPassword(activationLink: string): Observable<void> {
