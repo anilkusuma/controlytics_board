@@ -205,7 +205,6 @@ public class AuditLogServiceImpl implements AuditLogService {
         ObjectNode actionData = JacksonUtil.newObjectNode();
         switch (actionType) {
             case ADDED:
-            case UPDATED:
             case ALARM_ACK:
             case ALARM_CLEAR:
             case ALARM_ASSIGNED:
@@ -224,6 +223,43 @@ public class AuditLogServiceImpl implements AuditLogService {
                     if (ruleChainMetaData != null) {
                         ObjectNode ruleChainMetaDataNode = (ObjectNode) JacksonUtil.valueToTree(ruleChainMetaData);
                         actionData.set("metadata", ruleChainMetaDataNode);
+                    }
+                }
+                break;
+            case UPDATED:
+                // Check if additionalInfo contains a Map (custom action data)
+                if (additionalInfo != null && additionalInfo.length > 0 && additionalInfo[0] instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> customActionData = (Map<String, Object>) additionalInfo[0];
+                    // Add custom fields to actionData (like settingsType)
+                    customActionData.forEach((key, value) -> {
+                        if (!"entityData".equals(key)) { // Don't include entityData as a top-level field
+                            actionData.set(key, JacksonUtil.valueToTree(value));
+                        }
+                    });
+                    // If there's entityData, use it as the entity (for backward compatibility)
+                    if (customActionData.containsKey("entityData")) {
+                        Object entityData = customActionData.get("entityData");
+                        if (entityData != null) {
+                            ObjectNode entityNode = (ObjectNode) JacksonUtil.valueToTree(entityData);
+                            actionData.set("entity", entityNode);
+                        }
+                    }
+                } else {
+                    // Backward compatibility: handle entity directly
+                    if (entity != null) {
+                        ObjectNode entityNode = (ObjectNode) JacksonUtil.valueToTree(entity);
+                        if (entityId.getEntityType() == EntityType.DASHBOARD) {
+                            entityNode.put("configuration", "");
+                        }
+                        actionData.set("entity", entityNode);
+                    }
+                    if (entityId.getEntityType() == EntityType.RULE_CHAIN) {
+                        RuleChainMetaData ruleChainMetaData = extractParameter(RuleChainMetaData.class, additionalInfo);
+                        if (ruleChainMetaData != null) {
+                            ObjectNode ruleChainMetaDataNode = (ObjectNode) JacksonUtil.valueToTree(ruleChainMetaData);
+                            actionData.set("metadata", ruleChainMetaDataNode);
+                        }
                     }
                 }
                 break;

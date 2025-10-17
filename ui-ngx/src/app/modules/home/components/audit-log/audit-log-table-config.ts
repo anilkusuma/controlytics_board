@@ -116,7 +116,7 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
       ).subscribe(userDetails => {
         userRole = userDetails?.additionalInfo?.role;
       });
-      
+
       // Only show download button if user is NOT Admin or Maintenance
       if (userRole !== UserRole.ADMIN && userRole !== UserRole.MAINTENANCE) {
         this.headerActionDescriptors.push({
@@ -259,6 +259,10 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
           (entity.actionData?.['startTime'] ? `Start Time: ${entity.actionData['startTime']} <br>`  : '') +
           (entity.actionData?.['endTime'] ? `End Time: ${entity.actionData['endTime']} <br>` : '');
       case 'UPDATED':
+        if (entity.actionData?.['settingsType'] === 'PASSWORD_POLICY') {
+          return 'Password Policy Updated';
+        }
+        return entity.entityId.entityType + ':' + entity.entityName;
       case 'UPDATED_COMMENT':
       default:
         return entity.entityId.entityType + ':' + entity.entityName;

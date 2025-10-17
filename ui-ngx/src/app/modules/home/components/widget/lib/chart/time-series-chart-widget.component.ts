@@ -197,7 +197,7 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
 
     // Show re-authentication dialog
     this.ctx.dialogs.relogin({
-      remarksRequired: true,
+      remarksRequired: false,
       intervalRequired: false,
       timeRangeRequired: false,
       userNameInputRequired: false
@@ -205,7 +205,7 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
       (result: ReLoginDialogComponentResponse) => {
         if (result && result.reloginStatus) {
           // Proceed with PDF generation after successful re-authentication
-          this.generateAndDownloadPdf(title, chartInstance, result.remarks);
+          this.generateAndDownloadPdf(title, chartInstance, null);
         } else if (result && !result.reloginStatus) {
           this.ctx.showErrorToast('Authentication failed. Please try again.');
         }
@@ -213,7 +213,7 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
     );
   }
 
-  private generateAndDownloadPdf(title: string, chartInstance: any, remarks: string) {
+  private generateAndDownloadPdf(title: string, chartInstance: any, remarks: string | null) {
     // Capture chart as base64 image with higher resolution
     const chartImageBase64 = chartInstance.getDataURL({
       type: 'png',
@@ -256,16 +256,15 @@ export class TimeSeriesChartWidgetComponent implements OnInit, OnDestroy, AfterV
 
     // Prepare report data
     const reportData = {
-      entityId: this.ctx.defaultSubscription?.targetEntityId?.id || '',
-      entityType: this.ctx.defaultSubscription?.targetEntityId?.entityType || '',
-      entityName: entityName,
-      chartTitle: chartTitle,
+      entityId: this.ctx.defaultSubscription?.datasources[0]?.entityId || '',
+      entityType: this.ctx.defaultSubscription?.datasources[0]?.entityType || '',
+      entityName,
+      chartTitle,
       chartImageBase64: base64Data,
       startDate: formatDate(startDate),
       startTime: formatTime(startDate),
       endDate: formatDate(endDate),
-      endTime: formatTime(endDate),
-      remarks: remarks // Include remarks in the report data
+      endTime: formatTime(endDate)
     };
 
     // Call backend API to generate PDF

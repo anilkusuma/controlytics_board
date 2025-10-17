@@ -150,23 +150,23 @@
 <div class="report-details-header">
     <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
         <tr>
-            <td style="width: 50%;">
+            <td colspan="2" style="width: 100%;">
                 <label>Device Name</label><span class="colon">:</span><span th:text="${entityName}"></span>
             </td>
+        </tr>
+        <tr>
             <td style="width: 50%;">
                 <label>Start Date</label><span class="colon">:</span><span th:text="${startDate}"></span>
             </td>
-        </tr>
-        <tr>
-            <td>
+            <td style="width: 50%;">
                 <label>Start Time</label><span class="colon">:</span><span th:text="${startTime}"></span>
             </td>
-            <td>
-                <label>End Date</label><span class="colon">:</span><span th:text="${endDate}"></span>
-            </td>
         </tr>
         <tr>
-            <td>
+            <td style="width: 50%;">
+                <label>End Date</label><span class="colon">:</span><span th:text="${endDate}"></span>
+            </td>
+            <td style="width: 50%;">
                 <label>End Time</label><span class="colon">:</span><span th:text="${endTime}"></span>
             </td>
         </tr>

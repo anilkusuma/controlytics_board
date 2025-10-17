@@ -72,7 +72,9 @@ import org.thingsboard.server.service.security.model.SecurityUser;
 import org.thingsboard.server.service.security.permission.Operation;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -262,6 +264,47 @@ public class PdfReportController extends BaseController {
                 device, ActionType.REPORT_GENERATED, exception, ReportGenerationAuditLogData.builder()
                         .reportId(reportId.name())
                         .reportName(reportId.getDisplayName())
+                        .startTimeInMs(startTs)
+                        .endTimeInMs(endTs)
+                        .build());
+    }
+
+    private void publishTrendReportAuditLog(final SecurityUser currentUser,
+                                          final Device device,
+                                          final TrendReportRequest request,
+                                          final Exception exception) {
+        // Parse dates for audit log
+        Long startTs = null;
+        Long endTs = null;
+        try {
+            // Assuming the dates are in DD-MM-YYYY format and times in HH:MM format
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+            LocalDateTime startDateTime = LocalDateTime.of(
+                LocalDate.parse(request.getStartDate(), dateFormatter),
+                LocalTime.parse(request.getStartTime(), timeFormatter)
+            );
+            LocalDateTime endDateTime = LocalDateTime.of(
+                LocalDate.parse(request.getEndDate(), dateFormatter),
+                LocalTime.parse(request.getEndTime(), timeFormatter)
+            );
+
+            // Convert to milliseconds (UTC)
+            startTs = startDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+            endTs = endDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } catch (Exception parseException) {
+            log.warn("Failed to parse start/end dates for audit log", parseException);
+        }
+
+        auditLogService.logEntityAction(currentUser.getTenantId(),
+                currentUser.getCustomerId(),
+                currentUser.getId(),
+                currentUser.getName(),
+                Optional.ofNullable(device).map(Device::getId).orElse(null),
+                device, ActionType.REPORT_GENERATED, exception, ReportGenerationAuditLogData.builder()
+                        .reportId("TREND_REPORT")
+                        .reportName("Trend Report")
                         .startTimeInMs(startTs)
                         .endTimeInMs(endTs)
                         .build());
@@ -486,9 +529,9 @@ public class PdfReportController extends BaseController {
     @ResponseBody
     public ResponseEntity<byte[]> generateTrendReport(
             @RequestBody TrendReportRequest request) throws ThingsboardException {
-        
+
         final SecurityUser currentUser = getCurrentUser();
-        
+
         try {
             // Create context for PDF generation
             TrendPdfGenerationContext context = TrendPdfGenerationContext.builder()
@@ -515,13 +558,36 @@ public class PdfReportController extends BaseController {
                 .filename("trend_report_" + System.currentTimeMillis() + ".pdf")
                 .build());
 
+            // Create device entity for audit log
+            Device device = null;
+            if (!StringUtils.isEmpty(request.getEntityId()) && "DEVICE".equals(request.getEntityType())) {
+                device = deviceService.findDeviceById(currentUser.getTenantId(),
+                    new DeviceId(UUID.fromString(request.getEntityId())));
+            }
+
+            // Publish audit log for successful trend report generation
+            publishTrendReportAuditLog(currentUser, device, request, null);
+
             return ResponseEntity.ok()
                 .headers(headers)
                 .body(pdfBytes);
 
         } catch (Exception e) {
             log.error("Error generating trend report", e);
-            throw new ThingsboardException("Failed to generate trend report", e, 
+
+            // Publish audit log for failed trend report generation
+            Device device = null;
+            try {
+                if (!StringUtils.isEmpty(request.getEntityId()) && "DEVICE".equals(request.getEntityType())) {
+                    device = deviceService.findDeviceById(currentUser.getTenantId(),
+                        new DeviceId(UUID.fromString(request.getEntityId())));
+                }
+                publishTrendReportAuditLog(currentUser, device, request, e);
+            } catch (Exception auditEx) {
+                log.warn("Failed to publish audit log for trend report generation", auditEx);
+            }
+
+            throw new ThingsboardException("Failed to generate trend report", e,
                 ThingsboardErrorCode.GENERAL);
         }
     }

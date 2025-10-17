@@ -164,7 +164,7 @@ export class FlotWidgetComponent implements OnInit {
 
     // Show re-authentication dialog
     this.ctx.dialogs.relogin({
-      remarksRequired: true,
+      remarksRequired: false,
       intervalRequired: false,
       timeRangeRequired: false,
       userNameInputRequired: false
@@ -172,7 +172,7 @@ export class FlotWidgetComponent implements OnInit {
       (result: ReLoginDialogComponentResponse) => {
         if (result && result.reloginStatus) {
           // Proceed with PDF generation after successful re-authentication
-          this.generateAndDownloadPdf(title, result.remarks);
+          this.generateAndDownloadPdf(title, null);
         } else if (result && !result.reloginStatus) {
           this.ctx.showErrorToast('Authentication failed. Please try again.');
         }
@@ -180,7 +180,7 @@ export class FlotWidgetComponent implements OnInit {
     );
   }
 
-  private generateAndDownloadPdf(title: string, remarks: string) {
+  private generateAndDownloadPdf(title: string, remarks: string | null) {
     try {
       // Get the chart as base64 image
       const chartImageBase64 = this.flot.getChartAsBase64();
@@ -220,16 +220,15 @@ export class FlotWidgetComponent implements OnInit {
 
       // Prepare report data
       const reportData = {
-        entityId: this.ctx.defaultSubscription?.targetEntityId?.id || '',
-        entityType: this.ctx.defaultSubscription?.targetEntityId?.entityType || '',
-        entityName: entityName,
-        chartTitle: chartTitle,
+        entityId: this.ctx.defaultSubscription?.datasources[0]?.entityId || '',
+        entityType: this.ctx.defaultSubscription?.datasources[0]?.entityType || '',
+        entityName,
+        chartTitle,
         chartImageBase64: base64Data,
         startDate: formatDate(startDate),
         startTime: formatTime(startDate),
         endDate: formatDate(endDate),
-        endTime: formatTime(endDate),
-        remarks: remarks // Include remarks in the report data
+        endTime: formatTime(endDate)
       };
 
       // Call backend API to generate PDF

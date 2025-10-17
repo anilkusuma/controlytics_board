@@ -149,9 +149,27 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
                         && actionData.get("entity").get("details").has("createdValue")
                         ? "Created Value: " + actionData.get("entity").get("details").get("createdValue").asText() + "\n" : "");
             case REPORT_GENERATED:
-                return "Report Generated. \n\n" + (actionData.has("reportName") ? ("Report Name: " + actionData.get("reportName").asText() + "\n") : "");
-//                        (actionData.has("startTime") ? ("Start Time: " + actionData.get("startTime").asText() + "\n") : "") +
-//                        (actionData.has("endTime") ? "End Time: " + actionData.get("endTime").asText() + "\n" : "");
+                StringBuilder reportDetails = new StringBuilder();
+                if (actionData.has("reportName")) {
+                    reportDetails.append("Report: ").append(actionData.get("reportName").asText()).append("\n");
+                }
+                if (actionData.has("startTimeInMs") && actionData.has("endTimeInMs")) {
+                    long startTime = actionData.get("startTimeInMs").asLong();
+                    long endTime = actionData.get("endTimeInMs").asLong();
+                    if (startTime > 0) {
+                        reportDetails.append("Start Time: ").append(getFormattedTimeInIst(startTime)).append("\n");
+                    }
+                    if (endTime > 0) {
+                        reportDetails.append("End Time: ").append(getFormattedTimeInIst(endTime)).append("\n");
+                    }
+                }
+                return reportDetails.toString();
+            case UPDATED:
+                // Check if this is a password policy update
+                if (actionData.has("settingsType") && "PASSWORD_POLICY".equals(actionData.get("settingsType").asText())) {
+                    return "Password Policy Updated\n";
+                }
+                // Fall through to default for other updates
             default:
                 return getActionTypeString(auditLog) + "\n"
                         + auditLog.getEntityId().getEntityType().name() + ":" + auditLog.getEntityName() + "\n";
@@ -189,7 +207,23 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
             case LOCKOUT:
                 return "Lockout";
             case REPORT_GENERATED:
+                // Check if this is a trend report for more specific naming
+                if (auditLog.getActionData() != null && auditLog.getActionData().has("reportId")) {
+                    String reportId = auditLog.getActionData().get("reportId").asText();
+                    if ("TREND_REPORT".equals(reportId)) {
+                        return "Trend Report Generated";
+                    }
+                }
                 return "Report Generated";
+            case UPDATED:
+                // Check if this is a security settings update using the simple identifier
+                if (auditLog.getActionData() != null && auditLog.getActionData().has("settingsType")) {
+                    String settingsType = auditLog.getActionData().get("settingsType").asText();
+                    if ("PASSWORD_POLICY".equals(settingsType)) {
+                        return "Password Policy Updated";
+                    }
+                }
+                return "Updated";
             default:
                 return auditLog.getActionType().name().replace("_", " ");
         }

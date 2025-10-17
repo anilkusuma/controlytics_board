@@ -191,16 +191,13 @@
     <form [formGroup]="jwtSecuritySettingsFormGroup" (ngSubmit)="saveJwtSettings()" autocomplete="off">
       <fieldset [disabled]="isLoading$ | async" fxLayout="column" fxLayoutGap="8px">
         <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
-          <mat-form-field fxFlex class="mat-block">
+          <mat-form-field fxFlex class="mat-block" style="display: none !important; visibility: hidden;">
             <mat-label translate>admin.jwt.issuer-name</mat-label>
-            <input matInput required formControlName="tokenIssuer"/>
-            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenIssuer').hasError('required')">
-              {{ 'admin.jwt.issuer-name-required' | translate }}
-            </mat-error>
+            <input matInput formControlName="tokenIssuer"/>
           </mat-form-field>
-          <mat-form-field fxFlex class="mat-block">
+          <mat-form-field fxFlex class="mat-block" style="display: none !important; visibility: hidden;">
             <mat-label translate>admin.jwt.signings-key</mat-label>
-            <input matInput (focus)="markAsTouched()" required formControlName="tokenSigningKey"/>
+            <input matInput formControlName="tokenSigningKey"/>
             <button type="button"
                     style="line-height: 32px"
                     matSuffix
@@ -209,20 +206,10 @@
                     color="primary">
               {{ 'admin.jwt.generate-key' | translate }}
             </button>
-            <mat-hint translate>admin.jwt.signings-key-hint</mat-hint>
-            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenSigningKey').hasError('required')">
-              {{ 'admin.jwt.signings-key-required' | translate }}
-            </mat-error>
-            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenSigningKey').hasError('base64')">
-              {{ 'admin.jwt.signings-key-base64' | translate }}
-            </mat-error>
-            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenSigningKey').hasError('minLength')">
-              {{ 'admin.jwt.signings-key-min-length' | translate }}
-            </mat-error>
           </mat-form-field>
         </div>
         <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
-          <mat-form-field fxFlex class="mat-block">
+          <mat-form-field fxFlex class="mat-block" style="display: none;">
             <mat-label translate>admin.jwt.expiration-time</mat-label>
             <input matInput type="number" required
                    formControlName="tokenExpirationTime"

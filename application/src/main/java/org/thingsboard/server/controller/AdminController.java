@@ -90,7 +90,9 @@ import org.thingsboard.server.service.system.SystemInfoService;
 import org.thingsboard.server.service.update.UpdateService;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.thingsboard.server.controller.ControllerConstants.SYSTEM_AUTHORITY_PARAGRAPH;
@@ -179,8 +181,47 @@ public class AdminController extends BaseController {
             @Parameter(description = "A JSON value representing the Security Settings.")
             @RequestBody SecuritySettings securitySettings) throws ThingsboardException {
         accessControlService.checkPermission(getCurrentUser(), Resource.ADMIN_SETTINGS, Operation.WRITE);
-        securitySettings = checkNotNull(systemSecurityService.saveSecuritySettings(securitySettings));
-        return securitySettings;
+
+        try {
+            securitySettings = checkNotNull(systemSecurityService.saveSecuritySettings(securitySettings));
+
+            // Publish audit log for successful security settings update
+            SecurityUser currentUser = getCurrentUser();
+            // Create a simple action data to identify this as security settings update
+            Map<String, Object> actionData = new HashMap<>();
+            actionData.put("settingsType", "PASSWORD_POLICY");
+            actionData.put("entityData", securitySettings);
+
+            auditLogService.logEntityAction(currentUser.getTenantId(),
+                    currentUser.getCustomerId(),
+                    currentUser.getId(),
+                    currentUser.getName(),
+                    currentUser.getId(),
+                    currentUser,
+                    ActionType.UPDATED,
+                    null,
+                    actionData);
+
+            return securitySettings;
+        } catch (Exception e) {
+            // Publish audit log for failed security settings update
+            SecurityUser currentUser = getCurrentUser();
+            // Create a simple action data to identify this as security settings update
+            Map<String, Object> actionData = new HashMap<>();
+            actionData.put("settingsType", "PASSWORD_POLICY");
+            actionData.put("entityData", securitySettings);
+
+            auditLogService.logEntityAction(currentUser.getTenantId(),
+                    currentUser.getCustomerId(),
+                    currentUser.getId(),
+                    currentUser.getName(),
+                    currentUser.getId(),
+                    currentUser,
+                    ActionType.UPDATED,
+                    e,
+                    actionData);
+            throw e;
+        }
     }
 
     @ApiOperation(value = "Get the JWT Settings object (getJwtSettings)",
