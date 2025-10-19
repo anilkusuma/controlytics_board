@@ -4013,7 +4013,8 @@
             "special-character": "{ count, plural, =1 {1 special character} other {# special characters} }",
             "uppercase-letter": "{ count, plural, =1 {1 uppercase letter} other {# uppercase letters} }",
             "at-most": "At most:"
-        }
+        },
+        "password-changed-successfully": "Password changed successfully"
     },
     "relation": {
         "relations": "Relations",

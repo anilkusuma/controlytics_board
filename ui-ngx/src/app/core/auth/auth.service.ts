@@ -487,7 +487,14 @@ export class AuthService {
         response = this.refreshTokenSubject;
         const refreshToken = AuthService._storeGet('refresh_token');
         const refreshTokenValid = AuthService.isTokenValid('refresh_token');
-        this.setUserFromJwtToken(null, null, false);
+
+        // Don't clear tokens if they're still valid (recently updated)
+        // This prevents race condition after password change
+        const jwtTokenValid = AuthService.isJwtTokenValid();
+        if (!jwtTokenValid) {
+          this.setUserFromJwtToken(null, null, false);
+        }
+
         if (!refreshTokenValid) {
           this.translate.get('access.refresh-token-expired').subscribe(
             (translation) => {

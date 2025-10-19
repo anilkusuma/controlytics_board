@@ -354,6 +354,15 @@ export class SecurityComponent extends PageComponent implements OnInit, OnDestro
       this.authService.changePassword(this.changePassword.get('currentPassword').value,
         this.changePassword.get('newPassword').value, {ignoreErrors: true}).subscribe(() => {
           this.discardChanges(form);
+
+          // Show success notification
+          this.store.dispatch(new ActionNotificationShow({
+            message: this.translate.instant('security.password-changed-successfully'),
+            type: 'success',
+            duration: 3000,
+            verticalPosition: 'bottom',
+            horizontalPosition: 'right'
+          }));
         },
         (error) => {
           if (error.status === 400 && error.error.message === 'Current password doesn\'t match!') {

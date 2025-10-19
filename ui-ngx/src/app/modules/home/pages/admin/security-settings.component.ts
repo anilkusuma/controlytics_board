@@ -147,6 +147,32 @@ export class SecuritySettingsComponent extends PageComponent implements HasConfi
   }
 
   saveJwtSettings() {
+    this.store.pipe(select(selectAuth)).subscribe(auth => {
+      const currentUser = auth.userDetails;
+      // Check if current user is Admin (not Controlytics Admin)
+      if (currentUser.additionalInfo?.role === UserRole.ADMIN) {
+        // Show re-authentication dialog for Admin users before saving JWT settings
+        this.dialogService.relogin({
+          remarksRequired: false,
+          intervalRequired: false,
+          timeRangeRequired: false,
+          userNameInputRequired: false
+        } as ReLoginDialogComponentData).subscribe(
+          (result) => {
+            if (result && result.reloginStatus) {
+              // Proceed with saving JWT settings after successful re-authentication
+              this.performSaveJwtSettings();
+            }
+          }
+        );
+      } else {
+        // Skip re-authentication for Controlytics Admin or other roles
+        this.performSaveJwtSettings();
+      }
+    });
+  }
+
+  private performSaveJwtSettings(): void {
     const jwtFormSettings = this.jwtSecuritySettingsFormGroup.value;
     this.confirmChangeJWTSettings().pipe(mergeMap(value => {
       if (value) {

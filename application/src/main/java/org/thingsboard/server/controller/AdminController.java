@@ -244,8 +244,56 @@ public class AdminController extends BaseController {
             @RequestBody JwtSettings jwtSettings) throws ThingsboardException {
         SecurityUser securityUser = getCurrentUser();
         accessControlService.checkPermission(securityUser, Resource.ADMIN_SETTINGS, Operation.WRITE);
-        checkNotNull(jwtSettingsService.saveJwtSettings(jwtSettings));
-        return tokenFactory.createTokenPair(securityUser);
+
+        try {
+            // Get old settings for audit comparison
+            JwtSettings oldSettings = jwtSettingsService.getJwtSettings();
+
+            // Save new settings
+            checkNotNull(jwtSettingsService.saveJwtSettings(jwtSettings));
+
+            // Create token pair for response
+            JwtPair tokenPair = tokenFactory.createTokenPair(securityUser);
+
+            // Publish audit log for successful JWT settings update
+            Map<String, Object> actionData = new HashMap<>();
+            actionData.put("settingsType", "JWT_SETTINGS");
+            actionData.put("oldRefreshTokenExpTime", oldSettings != null ? oldSettings.getRefreshTokenExpTime() : null);
+            actionData.put("newRefreshTokenExpTime", jwtSettings.getRefreshTokenExpTime());
+            actionData.put("oldTokenExpirationTime", oldSettings != null ? oldSettings.getTokenExpirationTime() : null);
+            actionData.put("newTokenExpirationTime", jwtSettings.getTokenExpirationTime());
+            actionData.put("entityData", jwtSettings);
+
+            auditLogService.logEntityAction(securityUser.getTenantId(),
+                    securityUser.getCustomerId(),
+                    securityUser.getId(),
+                    securityUser.getName(),
+                    securityUser.getId(),
+                    securityUser,
+                    ActionType.UPDATED,
+                    null,
+                    actionData);
+
+            return tokenPair;
+        } catch (Exception e) {
+            // Publish audit log for failed JWT settings update
+            Map<String, Object> actionData = new HashMap<>();
+            actionData.put("settingsType", "JWT_SETTINGS");
+            actionData.put("attemptedRefreshTokenExpTime", jwtSettings.getRefreshTokenExpTime());
+            actionData.put("attemptedTokenExpirationTime", jwtSettings.getTokenExpirationTime());
+            actionData.put("entityData", jwtSettings);
+
+            auditLogService.logEntityAction(securityUser.getTenantId(),
+                    securityUser.getCustomerId(),
+                    securityUser.getId(),
+                    securityUser.getName(),
+                    securityUser.getId(),
+                    securityUser,
+                    ActionType.UPDATED,
+                    e,
+                    actionData);
+            throw e;
+        }
     }
 
     @ApiOperation(value = "Send test email (sendTestMail)",
