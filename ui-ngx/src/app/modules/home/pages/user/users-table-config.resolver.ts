@@ -96,7 +96,19 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
       new EntityTableColumn<User>('email', 'user.login-id', '33%')
     );
 
-    this.config.deleteEnabled = user => user && user.id && user.id.id !== this.authUser.id.id;
+    this.config.deleteEnabled = user => {
+      // Prevent self-deletion
+      if (!user || !user.id || user.id.id === this.authUser.id.id) {
+        return false;
+      }
+
+      // Only CONTROLYTICS_ADMIN or SYS_ADMIN can delete users
+      const currentUserRole = this.authUser.additionalInfo?.role;
+      const currentAuthority = this.authUser.authority;
+
+      return currentUserRole === UserRole.CONTROLYTICS_ADMIN ||
+             currentAuthority === Authority.SYS_ADMIN;
+    };
     this.config.deleteEntityTitle = user => this.translate.instant('user.delete-user-title', { userEmail: user.email });
     this.config.deleteEntityContent = () => this.translate.instant('user.delete-user-text');
     this.config.deleteEntitiesTitle = count => this.translate.instant('user.delete-users-title', {count});
@@ -243,41 +255,9 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
   }
 
   deleteUser(id: any): Observable<any> {
-    // Check if current user is Admin (not Controlytics Admin)
-    if (this.authUser.additionalInfo?.role === UserRole.ADMIN) {
-      // Return an Observable that handles re-authentication
-      return new Observable(observer => {
-        this.dialogService.relogin({
-          remarksRequired: false,
-          intervalRequired: false,
-          timeRangeRequired: false,
-          userNameInputRequired: false
-        } as ReLoginDialogComponentData).subscribe(
-          (result) => {
-            if (result && result.reloginStatus) {
-              // Proceed with user deletion after successful re-authentication
-              this.userService.deleteUser(id.id).subscribe(
-                response => {
-                  observer.next(response);
-                  observer.complete();
-                },
-                error => {
-                  observer.error(error);
-                }
-              );
-            } else {
-              observer.error(new Error('Re-authentication failed'));
-            }
-          },
-          error => {
-            observer.error(error);
-          }
-        );
-      });
-    } else {
-      // Skip re-authentication for Controlytics Admin or other roles
-      return this.userService.deleteUser(id.id);
-    }
+    // Since delete is only available to CONTROLYTICS_ADMIN or SYS_ADMIN,
+    // no re-authentication is needed
+    return this.userService.deleteUser(id.id);
   }
 
   private openUser($event: Event, user: User, config: EntityTableConfig<User>) {

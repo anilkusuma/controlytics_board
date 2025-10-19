@@ -39,6 +39,7 @@ import { TwoFactorAuthSettingsComponent } from '@home/pages/admin/two-factor-aut
 import { widgetsLibraryRoutes } from '@home/pages/widget/widget-library-routing.module';
 import { RouterTabsComponent } from '@home/components/router-tabs.component';
 import { auditLogsRoutes } from '@home/pages/audit-log/audit-log-routing.module';
+import { AuditLogTableComponent } from '@home/components/audit-log/audit-log-table.component';
 import { ImageGalleryComponent } from '@shared/components/image/image-gallery.component';
 import { MobileAppSettingsComponent } from '@home/pages/admin/mobile-app-settings.component';
 
@@ -372,6 +373,19 @@ const routes: Routes = [
         },
         resolve: {
           loginProcessingUrl: OAuth2LoginProcessingUrlResolver
+        }
+      },
+      {
+        path: 'auditLogs',
+        component: AuditLogTableComponent,
+        data: {
+          auth: [Authority.TENANT_ADMIN, Authority.CUSTOMER_USER, Authority.SYS_ADMIN],
+          title: 'audit-log.audit-logs',
+          breadcrumb: {
+            label: 'audit-log.audit-logs',
+            icon: 'track_changes'
+          },
+          isPage: true
         }
       }
     ]
