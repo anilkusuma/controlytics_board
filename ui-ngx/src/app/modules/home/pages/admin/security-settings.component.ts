@@ -53,6 +53,7 @@ export class SecuritySettingsComponent extends PageComponent implements HasConfi
   jwtSecuritySettingsFormGroup: UntypedFormGroup;
 
   showMainLoadingBar = false;
+  isControlyticsAdmin: boolean = false;
 
   private securitySettings: SecuritySettings;
   private jwtSettings: JwtSettings;
@@ -65,6 +66,13 @@ export class SecuritySettingsComponent extends PageComponent implements HasConfi
               private translate: TranslateService,
               private fb: UntypedFormBuilder) {
     super(store);
+
+    // Check user role
+    this.store.pipe(select(selectAuth)).subscribe(auth => {
+      const currentUser = auth.userDetails;
+      this.isControlyticsAdmin = currentUser.additionalInfo?.role === UserRole.CONTROLYTICS_ADMIN;
+    });
+
     this.buildSecuritySettingsForm();
     this.buildJwtSecuritySettingsForm();
     this.adminService.getSecuritySettings().subscribe(
@@ -98,11 +106,11 @@ export class SecuritySettingsComponent extends PageComponent implements HasConfi
 
   buildJwtSecuritySettingsForm() {
     this.jwtSecuritySettingsFormGroup = this.fb.group({
-      tokenIssuer: ['thingsboardDefaultIssuer'],
-      tokenSigningKey: ['thingsboardDefaultSigningKey'],
-      tokenExpirationTime: [9000],
+      tokenIssuer: ['thingsboardDefaultIssuer', [Validators.required]],
+      tokenSigningKey: ['thingsboardDefaultSigningKey', [Validators.required, this.base64Format.bind(this)]],
+      tokenExpirationTime: [9000, [Validators.required, Validators.pattern('[0-9]*'), Validators.min(60)]],
       refreshTokenExpTime: [0, [Validators.required, Validators.pattern('[0-9]*'), Validators.min(900)]]
-    });
+    }, { validators: this.refreshTokenTimeGreatTokenTime.bind(this) });
   }
 
   save(): void {
@@ -207,16 +215,12 @@ export class SecuritySettingsComponent extends PageComponent implements HasConfi
     this.jwtSecuritySettingsFormGroup.reset(jwtSettings);
   }
 
-  private refreshTokenTimeGreatTokenTime(formGroup: UntypedFormGroup): { [key: string]: boolean } | null {
-    if (formGroup) {
+  private refreshTokenTimeGreatTokenTime(formGroup: AbstractControl): ValidationErrors | null {
+    if (formGroup instanceof UntypedFormGroup) {
       const tokenTime = formGroup.value.tokenExpirationTime;
       const refreshTokenTime = formGroup.value.refreshTokenExpTime;
-      if (tokenTime >= refreshTokenTime ) {
-        if (formGroup.get('refreshTokenExpTime').untouched) {
-          formGroup.get('refreshTokenExpTime').markAsTouched();
-        }
-        formGroup.get('refreshTokenExpTime').setErrors({lessToken: true});
-        return {lessToken: true};
+      if (tokenTime && refreshTokenTime && tokenTime >= refreshTokenTime) {
+        return { tokenExpirationGreaterThanRefresh: true };
       }
     }
     return null;

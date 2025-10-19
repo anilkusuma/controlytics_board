@@ -104,8 +104,7 @@ export class AssetsTableConfigResolver implements Resolve<EntityTableConfig<Asse
         ));
     };
     this.config.onEntityAction = action => this.onAssetAction(action, this.config);
-    this.config.detailsReadonly = () => (this.config.componentsData.assetScope === 'customer_user' ||
-      this.config.componentsData.assetScope === 'edge_customer_user');
+    this.config.detailsReadonly = () => true;  // Always set to read-only to hide edit option
 
     this.config.headerComponent = AssetTableHeaderComponent;
 

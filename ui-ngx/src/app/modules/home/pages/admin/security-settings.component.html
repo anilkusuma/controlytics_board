@@ -191,11 +191,16 @@
     <form [formGroup]="jwtSecuritySettingsFormGroup" (ngSubmit)="saveJwtSettings()" autocomplete="off">
       <fieldset [disabled]="isLoading$ | async" fxLayout="column" fxLayoutGap="8px">
         <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
-          <mat-form-field fxFlex class="mat-block" style="display: none !important; visibility: hidden;">
+          <!-- Token Issuer - Only visible for Controlytics Admin -->
+          <mat-form-field fxFlex class="mat-block" *ngIf="isControlyticsAdmin" [style.display]="isControlyticsAdmin ? 'block' : 'none'">
             <mat-label translate>admin.jwt.issuer-name</mat-label>
             <input matInput formControlName="tokenIssuer"/>
+            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenIssuer').hasError('required')">
+              {{ 'admin.jwt.issuer-name-required' | translate }}
+            </mat-error>
           </mat-form-field>
-          <mat-form-field fxFlex class="mat-block" style="display: none !important; visibility: hidden;">
+          <!-- Token Signing Key - Only visible for Controlytics Admin -->
+          <mat-form-field fxFlex class="mat-block" *ngIf="isControlyticsAdmin" [style.display]="isControlyticsAdmin ? 'block' : 'none'">
             <mat-label translate>admin.jwt.signings-key</mat-label>
             <input matInput formControlName="tokenSigningKey"/>
             <button type="button"
@@ -206,15 +211,26 @@
                     color="primary">
               {{ 'admin.jwt.generate-key' | translate }}
             </button>
+            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenSigningKey').hasError('required')">
+              {{ 'admin.jwt.signings-key-required' | translate }}
+            </mat-error>
+            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenSigningKey').hasError('minLength')">
+              {{ 'admin.jwt.signings-key-min-length' | translate }}
+            </mat-error>
+            <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenSigningKey').hasError('base64')">
+              {{ 'admin.jwt.signings-key-base64' | translate }}
+            </mat-error>
           </mat-form-field>
         </div>
         <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="8px">
-          <mat-form-field fxFlex class="mat-block" style="display: none;">
+          <!-- Token Expiration Time - Only visible for Controlytics Admin -->
+          <mat-form-field fxFlex class="mat-block" *ngIf="isControlyticsAdmin" [style.display]="isControlyticsAdmin ? 'block' : 'none'">
             <mat-label translate>admin.jwt.expiration-time</mat-label>
             <input matInput type="number" required
                    formControlName="tokenExpirationTime"
                    step="1"
-                   min="0"/>
+                   min="60"/>
+            <mat-hint>{{ 'admin.jwt.expiration-time-hint' | translate }}</mat-hint>
             <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('tokenExpirationTime').hasError('required')">
               {{ 'admin.jwt.expiration-time-required' | translate }}
             </mat-error>
@@ -225,12 +241,14 @@
               {{ 'admin.jwt.expiration-time-min' | translate }}
             </mat-error>
           </mat-form-field>
+          <!-- Refresh Token Expiration Time - Visible for all users -->
           <mat-form-field fxFlex class="mat-block">
             <mat-label translate>admin.jwt.refresh-expiration-time</mat-label>
             <input matInput type="number" required
                    formControlName="refreshTokenExpTime"
                    step="1"
-                   min="0"/>
+                   min="900"/>
+            <mat-hint *ngIf="isControlyticsAdmin">{{ 'admin.jwt.refresh-expiration-time-hint' | translate }}</mat-hint>
             <mat-error *ngIf="jwtSecuritySettingsFormGroup.get('refreshTokenExpTime').hasError('required')">
               {{ 'admin.jwt.refresh-expiration-time-required' | translate }}
             </mat-error>
@@ -244,6 +262,11 @@
               {{ 'admin.jwt.refresh-expiration-time-less-token' | translate }}
             </mat-error>
           </mat-form-field>
+        </div>
+        <!-- Form-level validation error for token time relationship -->
+        <div *ngIf="jwtSecuritySettingsFormGroup.hasError('tokenExpirationGreaterThanRefresh') && jwtSecuritySettingsFormGroup.touched"
+             class="mat-error" style="margin-top: -8px; margin-bottom: 16px;">
+          {{ 'admin.jwt.token-expiration-greater-than-refresh-error' | translate }}
         </div>
         <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="8px" class="layout-wrap">
           <button mat-button color="primary"

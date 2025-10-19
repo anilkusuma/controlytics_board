@@ -283,7 +283,11 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    if (this.userRole !== UserRole.MAINTENANCE) {
+    // Only show edit icon for Admin and Controlytics Admin
+    // Hide for Supervisor, Operator, and Maintenance
+    if (this.userRole !== UserRole.MAINTENANCE &&
+        this.userRole !== UserRole.SUPERVISOR &&
+        this.userRole !== UserRole.OPERATOR) {
       actions.push(
         {
           name: this.translate.instant('dashboard.dashboard-details'),

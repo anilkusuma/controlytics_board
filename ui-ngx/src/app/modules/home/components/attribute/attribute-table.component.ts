@@ -113,7 +113,7 @@ export class AttributeTableComponent extends PageComponent implements AfterViewI
   attributeScope: TelemetryType;
   toTelemetryTypeFunc = toTelemetryType;
 
-  displayedColumns = ['select', 'key', 'value'];
+  displayedColumns: string[] = [];
   pageLink: PageLink;
   textSearchMode = false;
   dataSource: AttributeDatasource;
@@ -212,6 +212,14 @@ export class AttributeTableComponent extends PageComponent implements AfterViewI
     this.pageLink = new PageLink(10, 0, null, sortOrder);
     this.userRole = getCurrentAuthState(this.store).userDetails.additionalInfo?.role;
     this.dataSource = new AttributeDatasource(this.attributeService, this.telemetryWsService, this.zone, this.translate);
+
+    // Set displayed columns based on user role
+    // Hide checkbox selection for Maintenance users
+    if (this.userRole === UserRole.MAINTENANCE) {
+      this.displayedColumns = ['key', 'value'];
+    } else {
+      this.displayedColumns = ['select', 'key', 'value'];
+    }
   }
 
   ngOnInit() {
