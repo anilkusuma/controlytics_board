@@ -47,6 +47,7 @@ import org.thingsboard.server.common.data.EntityType;
 import org.thingsboard.server.common.data.User;
 import org.thingsboard.server.common.data.UserEmailInfo;
 import org.thingsboard.server.common.data.alarm.Alarm;
+import org.thingsboard.server.common.data.audit.ActionType;
 import org.thingsboard.server.common.data.exception.ThingsboardErrorCode;
 import org.thingsboard.server.common.data.exception.ThingsboardException;
 import org.thingsboard.server.common.data.id.AlarmId;
@@ -308,6 +309,21 @@ public class UserController extends BaseController {
         SecurityUser authUser = getCurrentUser();
         UserCredentials userCredentials = userService.findUserCredentialsByUserId(authUser.getTenantId(), user.getId());
         if (userCredentials.getResetToken() != null) {
+            // Log audit trail for admin retrieving temporary password
+            try {
+                logEntityActionService.logEntityAction(
+                    authUser.getTenantId(),
+                    user.getId(),
+                    user,
+                    user.getCustomerId(),
+                    ActionType.CREDENTIALS_UPDATED,
+                    authUser,
+                    "Admin retrieved temporary password for user: " + user.getEmail()
+                );
+            } catch (Exception e) {
+                log.error("Failed to log audit trail for getTemporaryPassword", e);
+            }
+
             return userCredentials.getResetToken();
         } else {
             throw new ThingsboardException("User did not request for reset password!",
@@ -334,6 +350,22 @@ public class UserController extends BaseController {
             String baseUrl = systemSecurityService.getBaseUrl(getTenantId(), getCurrentUser().getCustomerId(), request);
             String activateUrl = String.format(RESET_PASSWORD_URL_PATTERN, baseUrl,
                     userCredentials.getResetToken());
+
+            // Log audit trail for admin retrieving password reset link
+            try {
+                logEntityActionService.logEntityAction(
+                    authUser.getTenantId(),
+                    user.getId(),
+                    user,
+                    user.getCustomerId(),
+                    ActionType.CREDENTIALS_UPDATED,
+                    authUser,
+                    "Admin retrieved password reset link for user: " + user.getEmail()
+                );
+            } catch (Exception e) {
+                log.error("Failed to log audit trail for getResetPasswordLink", e);
+            }
+
             return activateUrl;
         } else {
             throw new ThingsboardException("User did not request for reset password!",
@@ -487,7 +519,29 @@ public class UserController extends BaseController {
         UserId userId = new UserId(toUUID(strUserId));
         User user = checkUserId(userId, Operation.WRITE);
         TenantId tenantId = getCurrentUser().getTenantId();
+        SecurityUser authUser = getCurrentUser();
+
         userService.setUserCredentialsEnabled(tenantId, userId, userCredentialsEnabled);
+
+        // Log audit trail for admin enabling/disabling user credentials
+        try {
+            ActionType actionType = userCredentialsEnabled ? ActionType.ACTIVATED : ActionType.SUSPENDED;
+            String actionDescription = userCredentialsEnabled ?
+                "Admin enabled user credentials for user: " + user.getEmail() :
+                "Admin disabled user credentials for user: " + user.getEmail();
+
+            logEntityActionService.logEntityAction(
+                tenantId,
+                user.getId(),
+                user,
+                user.getCustomerId(),
+                actionType,
+                authUser,
+                actionDescription
+            );
+        } catch (Exception e) {
+            log.error("Failed to log audit trail for setUserCredentialsEnabled", e);
+        }
 
         if (!userCredentialsEnabled) {
             eventPublisher.publishEvent(new UserCredentialsInvalidationEvent(userId));

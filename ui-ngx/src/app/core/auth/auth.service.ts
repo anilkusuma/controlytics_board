@@ -133,20 +133,8 @@ export class AuthService {
         return response.body;
       }),
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401) {
-          console.log(error);
-          const redirectUrl = error?.error?.resetToken; // Extract the redirect URL
-          if (redirectUrl) {
-            console.log('Redirecting to:', redirectUrl);
-            window.location.href = redirectUrl; // Perform client-side redirection
-            return of({
-              token: '',
-              refreshToken: '',
-              scope: Authority.TENANT_ADMIN
-            } as LoginResponse);// Prevent further processing of the error
-          }
-        }
-        // return throwError(() => error); // Rethrow the error so parent method can catch it if needed
+        // Re-throw error to allow login component to handle it
+        return throwError(() => error);
       })
     );
   }

@@ -109,8 +109,8 @@ export class GlobalHttpInterceptor implements HttpInterceptor {
           errorCode && errorCode === Constants.serverErrorCode.jwtTokenExpired) {
           return this.refreshTokenAndRetry(req, next);
       } else if (errorCode !== Constants.serverErrorCode.credentialsExpired
-          || errorCode !== Constants.serverErrorCode.resetPasswordRequired
-          || errorCode !== Constants.serverErrorCode.createPasswordRequired) {
+          && errorCode !== Constants.serverErrorCode.resetPasswordRequired
+          && errorCode !== Constants.serverErrorCode.createPasswordRequired) {
         unhandled = true;
       }
     } else if (errorResponse.status === 429) {
