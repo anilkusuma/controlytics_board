@@ -204,7 +204,7 @@
                     (click)="editAttribute($event, attribute)">
                 <mat-icon>edit</mat-icon>
               </span>
-              <button mat-icon-button *ngIf="false"
+              <button mat-icon-button *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN"
                       (click)="deleteTimeseries($event, attribute)">
                 <mat-icon>delete</mat-icon>
               </button>

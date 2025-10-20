@@ -28,8 +28,8 @@ public class ThingsboardAccountActivateRequiredResponse extends ThingsboardError
         this.resetUrl = resetUrl;
     }
 
-    public static ThingsboardPasswordResetRequiredResponse of(final String message, final String resetUrl) {
-        return new ThingsboardPasswordResetRequiredResponse(message, resetUrl);
+    public static ThingsboardAccountActivateRequiredResponse of(final String message, final String resetUrl) {
+        return new ThingsboardAccountActivateRequiredResponse(message, resetUrl);
     }
 
     @Schema(description = "Password create url", accessMode = Schema.AccessMode.READ_ONLY)

@@ -174,10 +174,11 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         this.config.cellActionDescriptors = this.configureCellActions(this.config.componentsData.dashboardScope);
         this.config.groupActionDescriptors = this.configureGroupActions(this.config.componentsData.dashboardScope);
         this.config.addActionDescriptors = this.configureAddActions(this.config.componentsData.dashboardScope);
+        const isAdminOrControlyticsAdmin = this.userRole === UserRole.ADMIN || this.userRole === UserRole.CONTROLYTICS_ADMIN;
         this.config.addEnabled = !(this.config.componentsData.dashboardScope === 'customer_user' ||
-          this.config.componentsData.dashboardScope === 'edge_customer_user' || this.userRole === UserRole.MAINTENANCE);
-        this.config.entitiesDeleteEnabled = this.config.componentsData.dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE;
-        this.config.deleteEnabled = () => this.config.componentsData.dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE;
+          this.config.componentsData.dashboardScope === 'edge_customer_user' || this.userRole === UserRole.MAINTENANCE) && isAdminOrControlyticsAdmin;
+        this.config.entitiesDeleteEnabled = this.config.componentsData.dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE && isAdminOrControlyticsAdmin;
+        this.config.deleteEnabled = () => this.config.componentsData.dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE && isAdminOrControlyticsAdmin;
         return this.config;
       })
     );
@@ -217,7 +218,10 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
 
   configureCellActions(dashboardScope: string): Array<CellActionDescriptor<DashboardInfo>> {
     const actions: Array<CellActionDescriptor<DashboardInfo>> = [];
-    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE) {
+    // Only show actions for ADMIN and CONTROLYTICS_ADMIN
+    const isAdminOrControlyticsAdmin = this.userRole === UserRole.ADMIN || this.userRole === UserRole.CONTROLYTICS_ADMIN;
+
+    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.export'),
@@ -245,7 +249,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    if (dashboardScope === 'customer') {
+    if (dashboardScope === 'customer' && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.export'),
@@ -267,7 +271,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    if (dashboardScope === 'edge') {
+    if (dashboardScope === 'edge' && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.export'),
@@ -302,7 +306,10 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
 
   configureGroupActions(dashboardScope: string): Array<GroupActionDescriptor<DashboardInfo>> {
     const actions: Array<GroupActionDescriptor<DashboardInfo>> = [];
-    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE) {
+    // Only show group actions for ADMIN and CONTROLYTICS_ADMIN
+    const isAdminOrControlyticsAdmin = this.userRole === UserRole.ADMIN || this.userRole === UserRole.CONTROLYTICS_ADMIN;
+
+    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.assign-dashboards'),
@@ -320,7 +327,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    if (dashboardScope === 'customer') {
+    if (dashboardScope === 'customer' && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.unassign-dashboards'),
@@ -331,7 +338,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    if (dashboardScope === 'edge') {
+    if (dashboardScope === 'edge' && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.unassign-dashboards'),
@@ -346,7 +353,10 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
 
   configureAddActions(dashboardScope: string): Array<HeaderActionDescriptor> {
     const actions: Array<HeaderActionDescriptor> = [];
-    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE) {
+    // Only show add actions for ADMIN and CONTROLYTICS_ADMIN
+    const isAdminOrControlyticsAdmin = this.userRole === UserRole.ADMIN || this.userRole === UserRole.CONTROLYTICS_ADMIN;
+
+    if (dashboardScope === 'tenant' && this.userRole !== UserRole.MAINTENANCE && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.create-new-dashboard'),
@@ -362,7 +372,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    if (dashboardScope === 'customer') {
+    if (dashboardScope === 'customer' && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.assign-new-dashboard'),
@@ -372,7 +382,7 @@ export class DashboardsTableConfigResolver implements Resolve<EntityTableConfig<
         }
       );
     }
-    if (dashboardScope === 'edge') {
+    if (dashboardScope === 'edge' && isAdminOrControlyticsAdmin) {
       actions.push(
         {
           name: this.translate.instant('dashboard.assign-new-dashboard'),

@@ -14,9 +14,9 @@
 /// limitations under the License.
 ///
 
-import { Injectable } from '@angular/core';
-import { Resolve, Router } from '@angular/router';
-import { TenantProfile } from '@shared/models/tenant.model';
+import {Injectable} from '@angular/core';
+import {Resolve, Router} from '@angular/router';
+import {TenantProfile} from '@shared/models/tenant.model';
 import {
   checkBoxCell,
   DateEntityTableColumn,
@@ -24,26 +24,35 @@ import {
   EntityTableConfig,
   HeaderActionDescriptor
 } from '@home/models/entity/entities-table-config.models';
-import { TranslateService } from '@ngx-translate/core';
-import { DatePipe } from '@angular/common';
-import { EntityType, entityTypeResources, entityTypeTranslations } from '@shared/models/entity-type.models';
-import { EntityAction } from '@home/models/entity/entity-component.models';
-import { TenantProfileService } from '@core/http/tenant-profile.service';
-import { TenantProfileComponent } from '@home/components/profile/tenant-profile.component';
-import { TenantProfileTabsComponent } from './tenant-profile-tabs.component';
-import { DialogService } from '@core/services/dialog.service';
-import { ImportExportService } from '@shared/import-export/import-export.service';
+import {TranslateService} from '@ngx-translate/core';
+import {DatePipe} from '@angular/common';
+import {EntityType, entityTypeResources, entityTypeTranslations} from '@shared/models/entity-type.models';
+import {EntityAction} from '@home/models/entity/entity-component.models';
+import {TenantProfileService} from '@core/http/tenant-profile.service';
+import {TenantProfileComponent} from '@home/components/profile/tenant-profile.component';
+import {TenantProfileTabsComponent} from './tenant-profile-tabs.component';
+import {DialogService} from '@core/services/dialog.service';
+import {ImportExportService} from '@shared/import-export/import-export.service';
+import {AuthState} from "@core/auth/auth.models";
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
+import {Store} from "@ngrx/store";
+import {AppState} from "@core/core.state";
+import {Authority} from "@shared/models/authority.enum";
+import {UserRole} from "@shared/models/user.model";
 
 @Injectable()
 export class TenantProfilesTableConfigResolver implements Resolve<EntityTableConfig<TenantProfile>> {
 
   private readonly config: EntityTableConfig<TenantProfile> = new EntityTableConfig<TenantProfile>();
 
+  private authState: AuthState;
+
   constructor(private tenantProfileService: TenantProfileService,
               private importExport: ImportExportService,
               private translate: TranslateService,
               private datePipe: DatePipe,
               private router: Router,
+              private store: Store<AppState>,
               private dialogService: DialogService) {
 
     this.config.entityType = EntityType.TENANT_PROFILE;
@@ -52,6 +61,7 @@ export class TenantProfilesTableConfigResolver implements Resolve<EntityTableCon
     this.config.entityTranslations = entityTypeTranslations.get(EntityType.TENANT_PROFILE);
     this.config.entityResources = entityTypeResources.get(EntityType.TENANT_PROFILE);
 
+    this.authState = getCurrentAuthState(this.store);
     this.config.columns.push(
       new DateEntityTableColumn<TenantProfile>('createdTime', 'common.created-time', this.datePipe, '150px'),
       new EntityTableColumn<TenantProfile>('name', 'tenant-profile.name', '40%'),
@@ -88,14 +98,24 @@ export class TenantProfilesTableConfigResolver implements Resolve<EntityTableCon
     this.config.saveEntity = tenantProfile => this.tenantProfileService.saveTenantProfile(tenantProfile);
     this.config.deleteEntity = id => this.tenantProfileService.deleteTenantProfile(id.id);
     this.config.onEntityAction = action => this.onTenantProfileAction(action);
-    this.config.deleteEnabled = (tenantProfile) => tenantProfile && !tenantProfile.default;
-    this.config.entitySelectionEnabled = (tenantProfile) => tenantProfile && !tenantProfile.default;
     this.config.addActionDescriptors = this.configureAddActions();
   }
 
   resolve(): EntityTableConfig<TenantProfile> {
     this.config.tableTitle = this.translate.instant('tenant-profile.tenant-profiles');
 
+    if (this.authState.authUser.authority === Authority.SYS_ADMIN
+      || this.authState.userDetails.additionalInfo?.role === UserRole.CONTROLYTICS_ADMIN) {
+      this.config.searchEnabled = true;
+      this.config.deleteEnabled = (tenantProfile) => tenantProfile && !tenantProfile.default;
+      this.config.entitySelectionEnabled = (tenantProfile) => tenantProfile && !tenantProfile.default
+      this.config.addEnabled = true;
+    } else {
+      this.config.searchEnabled = false;
+      this.config.deleteEnabled = () => false;
+      this.config.entitySelectionEnabled = () => false;
+      this.config.addEnabled = false;
+    }
     return this.config;
   }
 

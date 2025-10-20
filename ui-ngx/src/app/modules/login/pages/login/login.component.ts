@@ -69,6 +69,10 @@ export class LoginComponent extends PageComponent implements OnInit {
           if (error && error.error && error.error.errorCode) {
             if (error.error.errorCode === Constants.serverErrorCode.credentialsExpired) {
               this.router.navigateByUrl(`login/resetExpiredPassword?resetToken=${error.error.resetToken}`);
+            } else if (error.error.errorCode === Constants.serverErrorCode.resetPasswordRequired) {
+              this.router.navigateByUrl(error.error.resetToken);
+            } else if (error.error.errorCode === Constants.serverErrorCode.createPasswordRequired) {
+              this.router.navigateByUrl(error.error.resetToken);
             } else if (error.error.errorCode === Constants.serverErrorCode.passwordViolation) {
               this.passwordViolation = true;
             }

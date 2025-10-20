@@ -221,6 +221,8 @@ public class AuditLogPdfGenerationContext extends PdfGenerationContext {
                     String settingsType = auditLog.getActionData().get("settingsType").asText();
                     if ("PASSWORD_POLICY".equals(settingsType)) {
                         return "Password Policy Updated";
+                    } else if ("JWT_SETTINGS".equals(settingsType)) {
+                        return "Auto Logout Settings Updated";
                     }
                 }
                 return "Updated";

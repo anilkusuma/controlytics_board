@@ -51,6 +51,8 @@ import { RelationDialogComponent, RelationDialogData } from '@home/components/re
 import { hidePageSizePixelValue } from '@shared/models/constants';
 import { ResizeObserver } from '@juggle/resize-observer';
 import { FormBuilder } from '@angular/forms';
+import {getCurrentAuthState} from "@core/auth/auth.selectors";
+import {UserRole} from "@shared/models/user.model";
 
 @Component({
   selector: 'tb-relation-table',
@@ -77,6 +79,7 @@ export class RelationTableComponent extends PageComponent implements AfterViewIn
   dirtyValue = false;
   entityIdValue: EntityId;
 
+  userRole: UserRole;
   viewsInited = false;
 
   @Input()
@@ -130,6 +133,7 @@ export class RelationTableComponent extends PageComponent implements AfterViewIn
     this.pageLink = new PageLink(10, 0, null, sortOrder);
     this.dataSource = new RelationsDatasource(this.entityRelationService, this.translate);
     this.updateColumns();
+    this.userRole = getCurrentAuthState(store)?.userDetails?.additionalInfo?.role;
   }
 
   ngOnInit() {
@@ -153,9 +157,17 @@ export class RelationTableComponent extends PageComponent implements AfterViewIn
 
   updateColumns() {
     if (this.direction === EntitySearchDirection.FROM) {
-      this.displayedColumns = ['select', 'type', 'toEntityTypeName', 'toName', 'actions'];
+      if (this.userRole === UserRole.CONTROLYTICS_ADMIN) {
+        this.displayedColumns = ['select', 'type', 'toEntityTypeName', 'toName', 'actions'];
+      } else {
+        this.displayedColumns = ['type', 'toEntityTypeName', 'toName'];
+      }
     } else {
-      this.displayedColumns = ['select', 'type', 'fromEntityTypeName', 'fromName', 'actions'];
+      if (this.userRole === UserRole.CONTROLYTICS_ADMIN) {
+        this.displayedColumns = ['select', 'type', 'fromEntityTypeName', 'fromName', 'actions'];
+      } else {
+        this.displayedColumns = ['type', 'fromEntityTypeName', 'fromName'];
+      }
     }
   }
 

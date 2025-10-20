@@ -261,6 +261,8 @@ export class AuditLogTableConfig extends EntityTableConfig<AuditLog, TimePageLin
       case 'UPDATED':
         if (entity.actionData?.['settingsType'] === 'PASSWORD_POLICY') {
           return 'Password Policy Updated';
+        } else if (entity.actionData?.['settingsType'] === 'JWT_SETTINGS') {
+          return 'Auto Logout Settings Updated';
         }
         return entity.entityId.entityType + ':' + entity.entityName;
       case 'UPDATED_COMMENT':

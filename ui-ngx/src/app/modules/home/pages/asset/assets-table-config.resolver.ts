@@ -32,7 +32,7 @@ import { EntityType, entityTypeResources, entityTypeTranslations } from '@shared
 import { EntityAction } from '@home/models/entity/entity-component.models';
 import { forkJoin, Observable, of } from 'rxjs';
 import { select, Store } from '@ngrx/store';
-import { selectAuthUser } from '@core/auth/auth.selectors';
+import {getCurrentAuthState, selectAuthUser} from '@core/auth/auth.selectors';
 import { map, mergeMap, take, tap } from 'rxjs/operators';
 import { AppState } from '@core/core.state';
 import { Authority } from '@app/shared/models/authority.enum';
@@ -63,6 +63,8 @@ import {
   AddEntitiesToEdgeDialogComponent,
   AddEntitiesToEdgeDialogData
 } from '@home/dialogs/add-entities-to-edge-dialog.component';
+import {User, UserRole} from "@shared/models/user.model";
+import {AuthState} from "@core/auth/auth.models";
 
 @Injectable()
 export class AssetsTableConfigResolver implements Resolve<EntityTableConfig<AssetInfo>> {
@@ -70,6 +72,7 @@ export class AssetsTableConfigResolver implements Resolve<EntityTableConfig<Asse
   private readonly config: EntityTableConfig<AssetInfo> = new EntityTableConfig<AssetInfo>();
 
   private customerId: string;
+  private authState: AuthState;
 
   constructor(private store: Store<AppState>,
               private broadcast: BroadcastService,
@@ -107,7 +110,16 @@ export class AssetsTableConfigResolver implements Resolve<EntityTableConfig<Asse
     this.config.detailsReadonly = () => true;  // Always set to read-only to hide edit option
 
     this.config.headerComponent = AssetTableHeaderComponent;
+    this.authState = getCurrentAuthState(this.store);
+    this.config.deleteEnabled = () => {
 
+      // Only CONTROLYTICS_ADMIN or SYS_ADMIN can delete users
+      const currentUserRole = this.authState.userDetails.additionalInfo?.role;
+      const currentAuthority = this.authState.userDetails.authority;
+
+      return currentUserRole === UserRole.CONTROLYTICS_ADMIN ||
+        currentAuthority === Authority.SYS_ADMIN;
+    };
   }
 
   resolve(route: ActivatedRouteSnapshot): Observable<EntityTableConfig<AssetInfo>> {
@@ -154,7 +166,6 @@ export class AssetsTableConfigResolver implements Resolve<EntityTableConfig<Asse
         this.config.addActionDescriptors = this.configureAddActions(this.config.componentsData.assetScope);
         this.config.addEnabled = !(this.config.componentsData.assetScope === 'customer_user' || this.config.componentsData.assetScope === 'edge_customer_user');
         this.config.entitiesDeleteEnabled = this.config.componentsData.assetScope === 'tenant';
-        this.config.deleteEnabled = () => this.config.componentsData.assetScope === 'tenant';
         return this.config;
       })
     );

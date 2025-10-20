@@ -25,7 +25,7 @@ import {
 import { TranslateService } from '@ngx-translate/core';
 import { DatePipe } from '@angular/common';
 import { EntityType, entityTypeResources, entityTypeTranslations } from '@shared/models/entity-type.models';
-import {User, UserRole} from '@shared/models/user.model';
+import {AuthUser, User, UserRole} from '@shared/models/user.model';
 import { UserService } from '@core/http/user.service';
 import { UserComponent } from '@modules/home/pages/user/user.component';
 import { CustomerService } from '@core/http/customer.service';
@@ -39,7 +39,7 @@ import { AddUserDialogComponent, AddUserDialogData } from '@modules/home/pages/u
 import { AuthState } from '@core/auth/auth.models';
 import { select, Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
-import { selectAuth } from '@core/auth/auth.selectors';
+import {getCurrentAuthState, getCurrentAuthUser, getCurrentUserSettings, selectAuth} from '@core/auth/auth.selectors';
 import { AuthService } from '@core/auth/auth.service';
 import {
   ActivationLinkDialogComponent,
@@ -68,6 +68,7 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
   private customerId: string;
   private authority: Authority;
   private authUser: User;
+  private authState: AuthState;
 
   constructor(private store: Store<AppState>,
               private userService: UserService,
@@ -96,24 +97,27 @@ export class UsersTableConfigResolver implements Resolve<EntityTableConfig<User>
       new EntityTableColumn<User>('email', 'user.login-id', '33%')
     );
 
+    this.authState = getCurrentAuthState(this.store);
+
     this.config.deleteEnabled = user => {
       // Prevent self-deletion
-      if (!user || !user.id || user.id.id === this.authUser.id.id) {
+      if (!user || !user.id || user.id.id === this.authState.userDetails.id.id) {
         return false;
       }
 
       // Only CONTROLYTICS_ADMIN or SYS_ADMIN can delete users
-      const currentUserRole = this.authUser.additionalInfo?.role;
-      const currentAuthority = this.authUser.authority;
+      const currentUserRole = this.authState.userDetails.additionalInfo?.role;
+      const currentAuthority = this.authState.userDetails.authority;
 
       return currentUserRole === UserRole.CONTROLYTICS_ADMIN ||
              currentAuthority === Authority.SYS_ADMIN;
     };
+
     this.config.deleteEntityTitle = user => this.translate.instant('user.delete-user-title', { userEmail: user.email });
     this.config.deleteEntityContent = () => this.translate.instant('user.delete-user-text');
     this.config.deleteEntitiesTitle = count => this.translate.instant('user.delete-users-title', {count});
     this.config.deleteEntitiesContent = () => this.translate.instant('user.delete-users-text');
-
+    this.config.selectionEnabled = false;
     this.config.loadEntity = id => this.userService.getUser(id.id);
     this.config.saveEntity = user => this.saveUser(user);
     this.config.deleteEntity = id => this.deleteUser(id);

@@ -35,7 +35,8 @@ import { getCurrentAuthState } from '@core/auth/auth.selectors';
 import { Store } from '@ngrx/store';
 import { AppState } from '@core/core.state';
 import { HomeDialogsService } from '@home/dialogs/home-dialogs.service';
-import {UserRole} from "@shared/models/user.model";
+import {UserRole} from '@shared/models/user.model';
+import {map} from 'rxjs/operators';
 
 @Injectable()
 export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<Customer>> {
@@ -126,19 +127,40 @@ export class CustomersTableConfigResolver implements Resolve<EntityTableConfig<C
     this.config.deleteEntitiesTitle = count => this.translate.instant('customer.delete-customers-title', {count});
     this.config.deleteEntitiesContent = () => this.translate.instant('customer.delete-customers-text');
 
-    this.config.entitiesFetchFunction = pageLink => this.customerService.getCustomers(pageLink);
+    this.config.entitiesFetchFunction = pageLink => this.customerService.getCustomers(pageLink).pipe(
+      map(pageData => {
+        if (authState.userDetails.additionalInfo.role !== UserRole.CONTROLYTICS_ADMIN) {
+          pageData.data = pageData.data.filter(customer => !customer.additionalInfo || !customer.additionalInfo.isPublic);
+          pageData.totalElements = pageData.data.length;
+        }
+        return pageData;
+      })
+    );
     this.config.loadEntity = id => this.customerService.getCustomer(id.id);
     this.config.saveEntity = customer => this.customerService.saveCustomer(customer);
     this.config.deleteEntity = id => this.customerService.deleteCustomer(id.id);
     this.config.onEntityAction = action => this.onCustomerAction(action, this.config);
-    this.config.deleteEnabled = (customer) => customer && (!customer.additionalInfo || !customer.additionalInfo.isPublic);
-    this.config.entitySelectionEnabled = (customer) => false;
     this.config.detailsReadonly = (customer) => customer && customer.additionalInfo && customer.additionalInfo.isPublic;
   }
 
   resolve(): EntityTableConfig<Customer> {
     this.config.tableTitle = this.translate.instant('customer.customers');
 
+    if (getCurrentAuthState(this.store).userDetails.additionalInfo.role === UserRole.CONTROLYTICS_ADMIN) {
+      this.config.searchEnabled = true;
+      this.config.addEnabled = true;
+      this.config.selectionEnabled = true;
+      this.config.deleteEnabled = (customer) => customer && (!customer.additionalInfo || !customer.additionalInfo.isPublic);
+    } else {
+      this.config.selectionEnabled = false;
+      this.config.searchEnabled = false;
+      this.config.addEnabled = false;
+      this.config.deleteEnabled = () => false;
+      this.config.handleRowClick = ($event, customer) => {
+        this.manageCustomerUsers($event, customer);
+        return true;
+      };
+    }
     return this.config;
   }
 
