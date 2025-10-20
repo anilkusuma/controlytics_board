@@ -132,8 +132,8 @@ export class RelationTableComponent extends PageComponent implements AfterViewIn
     this.direction = EntitySearchDirection.FROM;
     this.pageLink = new PageLink(10, 0, null, sortOrder);
     this.dataSource = new RelationsDatasource(this.entityRelationService, this.translate);
-    this.updateColumns();
     this.userRole = getCurrentAuthState(store)?.userDetails?.additionalInfo?.role;
+    this.updateColumns();
   }
 
   ngOnInit() {
