@@ -118,7 +118,7 @@ export class AssetsTableConfigResolver implements Resolve<EntityTableConfig<Asse
       const currentAuthority = this.authState.userDetails.authority;
 
       return currentUserRole === UserRole.CONTROLYTICS_ADMIN ||
-        currentAuthority === Authority.SYS_ADMIN;
+        currentAuthority === Authority.SYS_ADMIN || currentUserRole === UserRole.MAINTENANCE;
     };
   }
 

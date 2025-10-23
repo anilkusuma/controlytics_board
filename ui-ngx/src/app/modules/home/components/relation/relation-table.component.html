@@ -144,7 +144,8 @@
               <button mat-icon-button [disabled]="isLoading$ | async"
                       matTooltip="{{ 'relation.edit' | translate }}"
                       matTooltipPosition="above"
-                      (click)="editRelation($event, relation)">
+                      (click)="editRelation($event, relation)"
+                      *ngIf="userRole === UserRole.CONTROLYTICS_ADMIN">
                 <mat-icon>edit</mat-icon>
               </button>
               <button mat-icon-button [disabled]="isLoading$ | async"
