@@ -442,7 +442,9 @@ public class SwaggerConfiguration {
         apiResponses.addApiResponse("401 ", errorResponse("Unauthorized (**Expired credentials**)",
                 Map.of(
                         "credentials-expired", errorExample("Expired credentials",
-                                ThingsboardCredentialsExpiredResponse.of("User password expired!", StringUtils.randomAlphanumeric(30)))
+                                ThingsboardCredentialsExpiredResponse.of("User password expired!",
+                                        StringUtils.randomAlphanumeric(30),
+                                        StringUtils.randomAlphanumeric(20)))
                 ),
                 credentialsExpiredSchema
         ));

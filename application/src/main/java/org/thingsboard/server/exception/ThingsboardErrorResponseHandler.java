@@ -213,7 +213,8 @@ public class ThingsboardErrorResponseHandler extends ResponseEntityExceptionHand
             JacksonUtil.writeValue(response.getWriter(), ThingsboardErrorResponse.of(authenticationException.getMessage(), ThingsboardErrorCode.AUTHENTICATION, HttpStatus.UNAUTHORIZED));
         } else if (authenticationException instanceof UserPasswordExpiredException expiredException) {
             String resetToken = expiredException.getResetToken();
-            JacksonUtil.writeValue(response.getWriter(), ThingsboardCredentialsExpiredResponse.of(expiredException.getMessage(), resetToken));
+            String userId = expiredException.getUserId();
+            JacksonUtil.writeValue(response.getWriter(), ThingsboardCredentialsExpiredResponse.of(expiredException.getMessage(), resetToken, userId));
         } else if (authenticationException instanceof ResetPasswordException resetPasswordException) {
             try {
                 final String resetLink = new URI(resetPasswordException.getResetPasswordLink()).toString();

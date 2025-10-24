@@ -23,18 +23,25 @@ import org.thingsboard.server.common.data.exception.ThingsboardErrorCode;
 public class ThingsboardCredentialsExpiredResponse extends ThingsboardErrorResponse {
 
     private final String resetToken;
+    private final String userId;
 
-    protected ThingsboardCredentialsExpiredResponse(String message, String resetToken) {
+    protected ThingsboardCredentialsExpiredResponse(String message, String resetToken, String userId) {
         super(message, ThingsboardErrorCode.CREDENTIALS_EXPIRED, HttpStatus.UNAUTHORIZED);
         this.resetToken = resetToken;
+        this.userId = userId;
     }
 
-    public static ThingsboardCredentialsExpiredResponse of(final String message, final String resetToken) {
-        return new ThingsboardCredentialsExpiredResponse(message, resetToken);
+    public static ThingsboardCredentialsExpiredResponse of(final String message, final String resetToken, final String userId) {
+        return new ThingsboardCredentialsExpiredResponse(message, resetToken, userId);
     }
 
     @Schema(description = "Password reset token", accessMode = Schema.AccessMode.READ_ONLY)
     public String getResetToken() {
         return resetToken;
+    }
+
+    @Schema(description = "Base64 encoded user ID (email)", accessMode = Schema.AccessMode.READ_ONLY)
+    public String getUserId() {
+        return userId;
     }
 }

@@ -20,14 +20,20 @@ import org.springframework.security.authentication.CredentialsExpiredException;
 public class UserPasswordExpiredException extends CredentialsExpiredException {
 
     private final String resetToken;
+    private final String userId;
 
-    public UserPasswordExpiredException(String msg, String resetToken) {
+    public UserPasswordExpiredException(String msg, String resetToken, String userId) {
         super(msg);
         this.resetToken = resetToken;
+        this.userId = userId;
     }
 
     public String getResetToken() {
         return resetToken;
+    }
+
+    public String getUserId() {
+        return userId;
     }
 
 }

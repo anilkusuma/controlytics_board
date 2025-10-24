@@ -18,6 +18,7 @@ package org.thingsboard.server.service.security.system;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.Base64;
 import lombok.extern.slf4j.Slf4j;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
@@ -165,7 +166,9 @@ public class DefaultSystemSecurityService implements SystemSecurityService {
                     + TimeUnit.DAYS.toMillis(securitySettings.getPasswordPolicy().getPasswordExpirationPeriodDays()))
                     < System.currentTimeMillis()) {
                 userCredentials = userService.requestExpiredPasswordReset(tenantId, userCredentials.getId());
-                throw new UserPasswordExpiredException("User password expired!", userCredentials.getResetToken());
+                String encodedResetToken = Base64.getEncoder().encodeToString(userCredentials.getResetToken().getBytes());
+                String encodedUserId = Base64.getEncoder().encodeToString(user.getEmail().getBytes());
+                throw new UserPasswordExpiredException("User password expired!", encodedResetToken, encodedUserId);
             }
         }
     }
